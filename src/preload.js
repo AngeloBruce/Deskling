@@ -16,4 +16,7 @@ contextBridge.exposeInMainWorld('clawd', {
   // ventana → main: arrastrar la ventana (start = agarró, move = cuánto se movió el mouse)
   dragStart: () => ipcRenderer.send('drag-start'),
   dragMove: (dx, dy) => ipcRenderer.send('drag-move', dx, dy),
+  dragEnd: () => ipcRenderer.send('drag-end'),
+  // main → ventana: de qué lado está Clawd ('left' o 'right'), para acomodar el globito
+  onSide: (cb) => ipcRenderer.on('side', (_e, side) => cb(side)),
 });

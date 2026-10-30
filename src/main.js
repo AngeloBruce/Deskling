@@ -59,6 +59,7 @@ const state = {
   lastTrack: '',         // para detectar cambio de canción
   appSince: Date.now(),  // desde cuándo estás en la app actual
   warnedNoKey: false,
+  side: 'right',         // de qué lado de la ventana está Clawd (ver updateSide)
 };
 
 let win = null;
@@ -90,14 +91,18 @@ function mood(m) {
 // Ventana y bandeja
 // ---------------------------------------------------------------------------
 
+// Medidas de la ventana. Clawd va en una esquina de abajo de la ventana
+// (derecha o izquierda según `state.side`) y el globito crece hacia el otro lado.
+const WIN_W = 260, WIN_H = 200;
+const CLAWD_W = 60, CLAWD_PAD = 8; // ancho del sprite y margen al borde (igual que style.css)
+
 function createWindow() {
-  const W = 240, H = 170; // ventana chiquita: solo Clawd + el globito
   const { workArea } = screen.getPrimaryDisplay();
   win = new BrowserWindow({
-    width: W,
-    height: H,
-    x: workArea.x + workArea.width - W - 20,   // esquina inferior derecha
-    y: workArea.y + workArea.height - H - 10,
+    width: WIN_W,
+    height: WIN_H,
+    x: workArea.x + workArea.width - WIN_W - 12,   // esquina inferior derecha
+    y: workArea.y + workArea.height - WIN_H - 4,
     frame: false,          // sin barra de título
     transparent: true,     // fondo invisible
     resizable: false,
@@ -116,6 +121,26 @@ function createWindow() {
   // Errores y console.log de la ventana → al log de depuración.
   win.webContents.on('console-message', (_e, level, message) => debug(`[ventana:${level}]`, message));
   win.webContents.on('preload-error', (_e, p, err) => debug('[preload-error]', err.message));
+}
+
+/**
+ * Elige de qué lado de la ventana va Clawd para que el globito tenga espacio:
+ *   - Clawd en la mitad DERECHA de la pantalla → Clawd a la derecha, el globito crece hacia la izquierda.
+ *   - Clawd en la mitad IZQUIERDA → Clawd a la izquierda, el globito crece hacia la derecha.
+ * Al cambiar de lado corremos la ventana para que Clawd quede en el mismo lugar
+ * de la pantalla (no "salta"); solo cambia hacia dónde sale el globito.
+ */
+function updateSide() {
+  const [x, y] = win.getPosition();
+  const offsetRight = WIN_W - CLAWD_PAD - CLAWD_W; // dónde está Clawd dentro de la ventana si está a la derecha
+  const clawdX = state.side === 'right' ? x + offsetRight : x + CLAWD_PAD; // borde izquierdo de Clawd en pantalla
+  const { workArea } = screen.getDisplayNearestPoint({ x: clawdX, y });
+  const side = clawdX + CLAWD_W / 2 > workArea.x + workArea.width / 2 ? 'right' : 'left';
+  if (side !== state.side) {
+    state.side = side;
+    win.setPosition(side === 'right' ? clawdX - offsetRight : clawdX - CLAWD_PAD, y);
+  }
+  win.webContents.send('side', state.side);
 }
 
 /**
@@ -404,15 +429,36 @@ app.whenReady().then(() => {
   ipcMain.on('drag-move', (_e, dx, dy) => {
     if (dragFrom) win.setPosition(Math.round(dragFrom[0] + dx), Math.round(dragFrom[1] + dy));
   });
+  // Al soltarlo, decidimos de qué lado sale el globito.
+  ipcMain.on('drag-end', () => { dragFrom = null; updateSide(); });
 
   win.webContents.once('did-finish-load', () => {
+    updateSide();
     say('¡Hola! Soy Clawd 🦀 Te acompaño mientras trabajás.');
     wireSensors();
   });
 
   // Check-in periódico (con captura si está activada).
   setInterval(() => speak('checkin'), config.checkinMinutes * 60 * 1000);
+
+  // Recordatorios de bienestar (espalda, agua, ojos…), sin usar la IA.
+  setInterval(wellnessTip, config.wellness.everyMinutes * 60 * 1000);
 });
+
+/**
+ * Tira un consejo de bienestar al azar de config.json → wellness.tips
+ * (nunca el mismo dos veces seguidas). No gasta llamadas a la IA.
+ * Si estás en pausa o Clawd está hablando de otra cosa, se lo saltea.
+ */
+let lastTip = -1;
+function wellnessTip() {
+  const tips = config.wellness.tips;
+  if (state.paused || state.busy || !tips.length) return;
+  let i;
+  do { i = Math.floor(Math.random() * tips.length); } while (tips.length > 1 && i === lastTip);
+  lastTip = i;
+  say(tips[i], { sound: config.sound });
+}
 
 app.on('before-quit', () => sensors?.stop());
 app.on('window-all-closed', () => app.quit());

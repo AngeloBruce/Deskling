@@ -26,17 +26,24 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;   /* Clawd abajo, el globito encima */
-  align-items: flex-end;       /* todo pegado a la derecha (Clawd vive en la esquina) */
-  padding: 0 8px 6px 0;
+  align-items: flex-end;       /* Clawd y el globito pegados a la derecha… */
+  padding: 0 8px 6px 8px;      /* (8px = CLAWD_PAD en main.js) */
   box-sizing: border-box;
 }
+/* …o a la izquierda, si Clawd está en la mitad izquierda de la pantalla
+   (main.js lo decide y renderer.js pone body[data-side]). */
+body[data-side="left"] { align-items: flex-start; }
 
 /* ---------- Globito ---------- */
-/* "Pastillita" oscura con borde naranja, compacta, pegada arriba de Clawd */
+/* "Pastillita" oscura con borde naranja, compacta, pegada arriba de Clawd.
+   Su borde se alinea con el de Clawd y crece hacia el lado que tiene espacio. */
 #bubble {
-  max-width: 210px;
-  margin-bottom: 6px;
+  position: relative;
+  max-width: 228px;
+  margin-bottom: 6px;          /* casi el alto de la colita: queda pegado */
   padding: 5px 10px;
+  text-align: left;
+  transform-origin: 100% 100%; /* aparece "saliendo" de Clawd */
   background: var(--bubble-bg);
   color: var(--bubble-fg);
   border: 2px solid var(--bubble-border);
@@ -48,7 +55,27 @@ body {
   cursor: pointer;
   transition: opacity .25s, transform .25s;
 }
-#bubble.hidden { opacity: 0; transform: translateY(4px) scale(.96); pointer-events: none; }
+body[data-side="left"] #bubble { transform-origin: 0 100%; }
+/* el texto va en un span aparte: máximo 4 líneas y si es más largo termina en "…"
+   (el overflow va en el span para no cortar la colita del globito) */
+#bubble .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+#bubble.hidden { opacity: 0; transform: translateY(4px) scale(.9); pointer-events: none; }
+
+/* Colita que apunta a la cabeza de Clawd (centro de Clawd = 30px desde su borde).
+   ::before es el borde naranja y ::after el relleno oscuro encima. */
+#bubble::before, #bubble::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  border-style: solid;
+  border-color: transparent;
+  border-bottom: 0;
+}
+#bubble::before { bottom: -9px; border-width: 8px 7px 0; border-top-color: var(--bubble-border); right: 21px; }
+#bubble::after  { bottom: -6px; border-width: 6px 6px 0; border-top-color: #1c1816; }
+body[data-side="left"] #bubble::before { right: auto; left: 21px; }
+body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
+#bubble.alert::before { border-top-color: #f08a63; }
 /* notificaciones: borde más brillante y un brillito alrededor */
 #bubble.alert { border-color: #f08a63; box-shadow: 0 0 0 3px rgba(217, 119, 87, .25), 0 3px 10px rgba(0, 0, 0, .35); }
 

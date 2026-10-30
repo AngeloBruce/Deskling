@@ -62,7 +62,10 @@ function beep() {
  *   seconds → cuánto queda visible
  */
 window.clawd.onSay((msg) => {
-  bubble.textContent = msg.text;
+  const span = document.createElement('span'); // ver #bubble .text en style.css
+  span.className = 'text';
+  span.textContent = msg.text;
+  bubble.replaceChildren(span);
   bubble.classList.toggle('alert', !!msg.alert);
   bubble.classList.remove('hidden');
   setMood(msg.alert ? 'excited' : 'talking');
@@ -118,7 +121,8 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', () => {
   if (!press) return;
-  if (!press.moved) boop();
+  if (press.moved) window.clawd.dragEnd(); // soltó después de arrastrar → main acomoda el lado
+  else boop();
   clawdEl.classList.remove('dragging');
   press = null;
 });
@@ -150,3 +154,7 @@ function blop() {
   osc.stop(ctx.currentTime + 0.16);
   setTimeout(() => ctx.close(), 400);
 }
+
+// Main nos dice de qué lado está Clawd ('left' o 'right'); style.css acomoda
+// a Clawd y al globito según body[data-side].
+window.clawd.onSide((side) => { document.body.dataset.side = side; });

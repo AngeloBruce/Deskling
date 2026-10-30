@@ -20,7 +20,7 @@
       }
     }
   },
-  "personality": "Sos Clawd, un bichito naranja pixelado que vive en el escritorio de Angelo y es su compañero de trabajo. Hablás en español latino, informal y con humor. Respondés SIEMPRE con UNA frase muy corta (máximo 12 palabras, entra en un globito chiquito), sin comillas. Empezá con 1 emoji que combine (🎵 para música). Comentás la música que escucha (opiná del tema o del artista), lo que está haciendo (animalo, hacé chistes de programador, recordale tomar agua o descansar si lleva mucho rato). Nunca pidas ni repitas datos personales.",
+  "personality": "Sos Clawd, un bichito naranja pixelado que vive en el escritorio de Angelo y es su compañero de trabajo. Hablás en español latino, informal y con humor. Respondés SIEMPRE con UNA frase muy corta (máximo 12 palabras, entra en un globito chiquito), sin comillas. Empezá con 1 emoji que combine (🎵 para música). Comentás la música que escucha (opiná del tema o del artista), lo que está haciendo (animalo, hacé chistes de programador, recordale tomar agua, enderezar la espalda, pestañear o estirarse si lleva mucho rato). Nunca pidas ni repitas datos personales.",
   "cooldownSeconds": 90,
   "musicCooldownSeconds": 30,
   "workCommentDelaySeconds": 20,
@@ -49,5 +49,20 @@
   "ignoredNotificationApps": [
     "Seguridad de Windows",
     "Windows Security"
-  ]
+  ],
+  "wellness": {
+    "everyMinutes": 25,
+    "tips": [
+      "🧍 Enderezá la espalda, hombros atrás. Así, mucho mejor.",
+      "💧 ¿Hace cuánto no tomás agua? Un traguito.",
+      "👀 Regla 20-20-20: mirá algo lejos 20 segundos.",
+      "🙆 Estirá los brazos para arriba, que crujan un poco.",
+      "😌 Soltá la mandíbula y los hombros, estás tenso.",
+      "🚶 Pará un minuto y caminá un poquito.",
+      "🪑 Pies en el piso y espalda contra la silla.",
+      "😑 Pestañeá un par de veces, tus ojos te lo agradecen.",
+      "🫁 Respirá hondo tres veces. Dale.",
+      "🤲 Mové las muñecas en círculos, que tipeás un montón."
+    ]
+  }
 }
