@@ -13,4 +13,7 @@ contextBridge.exposeInMainWorld('clawd', {
   openMenu: () => ipcRenderer.send('menu'),
   // ventana → main: "hablá ahora" (doble clic sobre Clawd)
   poke: () => ipcRenderer.send('poke'),
+  // ventana → main: arrastrar la ventana (start = agarró, move = cuánto se movió el mouse)
+  dragStart: () => ipcRenderer.send('drag-start'),
+  dragMove: (dx, dy) => ipcRenderer.send('drag-move', dx, dy),
 });

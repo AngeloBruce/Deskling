@@ -57,7 +57,8 @@ body {
   position: relative;
   width: 60px;   /* tamaño de Clawd: cambiá esto para agrandarlo o achicarlo */
   height: 49px;
-  -webkit-app-region: drag; /* se puede arrastrar la ventana agarrando a Clawd */
+  /* el arrastre lo hace renderer.js (así Clawd también recibe clics) */
+  transform-origin: 50% 100%; /* el "blop" se aplasta desde las patitas */
   cursor: grab;
 }
 #clawd svg { width: 100%; height: 100%; overflow: visible; }
@@ -118,3 +119,16 @@ body {
 @keyframes blink  { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 @keyframes pulse  { 50% { opacity: .3; } }
 @keyframes float  { 50% { transform: translate(3px, -4px); } }
+
+/* ---------- Caricia (clic): "blop" tipo gelatina ---------- */
+/* Se aplica al div #clawd (no al svg) para no pisar las otras animaciones. */
+#clawd.dragging { cursor: grabbing; }
+#clawd.boop { animation: boop .7s cubic-bezier(.3, .7, .4, 1); }
+@keyframes boop {
+  0%   { transform: scale(1, 1); }
+  15%  { transform: scale(1.18, .8); }   /* se aplasta */
+  35%  { transform: scale(.9, 1.12); }   /* rebota para arriba */
+  55%  { transform: scale(1.06, .95); }
+  75%  { transform: scale(.98, 1.03); }
+  100% { transform: scale(1, 1); }
+}

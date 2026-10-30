@@ -397,6 +397,14 @@ app.whenReady().then(() => {
   ipcMain.on('menu', () => buildMenu().popup({ window: win }));
   ipcMain.on('poke', () => speak('poke', { force: true }));
 
+  // Arrastre propio: al agarrar guardamos dónde estaba la ventana y al mover
+  // la corremos lo mismo que se movió el mouse.
+  let dragFrom = null;
+  ipcMain.on('drag-start', () => { dragFrom = win.getPosition(); });
+  ipcMain.on('drag-move', (_e, dx, dy) => {
+    if (dragFrom) win.setPosition(Math.round(dragFrom[0] + dx), Math.round(dragFrom[1] + dy));
+  });
+
   win.webContents.once('did-finish-load', () => {
     say('¡Hola! Soy Clawd 🦀 Te acompaño mientras trabajás.');
     wireSensors();

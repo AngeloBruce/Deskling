@@ -91,3 +91,62 @@ clawdEl.addEventListener('contextmenu', (e) => { e.preventDefault(); window.claw
 
 // Doble clic sobre Clawd → que opine ya.
 clawdEl.addEventListener('dblclick', () => window.clawd.poke());
+
+// -----------------------------------------------------------------------------
+// Arrastrar vs. acariciar
+// Con el botón izquierdo: si movés el mouse más de 4 px es ARRASTRAR (se mueve
+// la ventana); si soltás sin moverlo es una CARICIA (blop).
+// -----------------------------------------------------------------------------
+let press = null; // { x, y, moved } mientras el botón está apretado
+
+clawdEl.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  press = { x: e.screenX, y: e.screenY, moved: false };
+  window.clawd.dragStart();
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!press) return;
+  const dx = e.screenX - press.x;
+  const dy = e.screenY - press.y;
+  if (!press.moved && Math.hypot(dx, dy) > 4) {
+    press.moved = true;
+    clawdEl.classList.add('dragging');
+  }
+  if (press.moved) window.clawd.dragMove(dx, dy);
+});
+
+window.addEventListener('mouseup', () => {
+  if (!press) return;
+  if (!press.moved) boop();
+  clawdEl.classList.remove('dragging');
+  press = null;
+});
+
+/** Caricia: Clawd se aplasta y rebota como gelatina, cierra los ojitos y hace "blop". */
+function boop() {
+  clawdEl.classList.remove('boop');
+  void clawdEl.offsetWidth; // truco para reiniciar la animación si clickeás seguido
+  clawdEl.classList.add('boop');
+  setFace('squint', 900);
+  blop();
+}
+clawdEl.addEventListener('animationend', (e) => {
+  if (e.animationName === 'boop') clawdEl.classList.remove('boop');
+});
+
+/** Sonido "blop": un tono suave que cae rápido de agudo a grave, bajito. */
+function blop() {
+  const ctx = new AudioContext();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(520, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.06, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.16);
+  setTimeout(() => ctx.close(), 400);
+}
