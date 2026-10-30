@@ -11,26 +11,54 @@
   <div id="bubble" class="hidden"></div>
 
   <!--
-    Clawd dibujado en pixel art con SVG (cada <rect> es un bloque).
-    Grilla de 16x12: cuerpo, bracitos a los costados, 4 patitas y 2 ojos.
-    Lo animamos con clases CSS en #clawd (ver style.css).
+    Clawd dibujado en pixel art con SVG (cada <rect> es un píxel o bloque).
+    Grilla de 32x26 (el doble que antes) para que la carita tenga detalle.
+    - #clawd tiene una clase de ANIMACIÓN (idle, talking, excited…)
+    - y un atributo data-face con la CARA: normal, happy (^ ^) o squint (> <).
+    style.css muestra solo el grupo de ojos que corresponde a la cara.
   -->
-  <div id="clawd" class="idle" title="Doble clic: que opine ahora · Clic derecho: menú">
-    <svg viewBox="0 0 16 13" shape-rendering="crispEdges">
+  <div id="clawd" class="idle" data-face="normal" title="Doble clic: que opine ahora · Clic derecho: menú">
+    <svg viewBox="0 0 32 26" shape-rendering="crispEdges">
       <g class="body">
-        <rect x="2" y="2" width="12" height="7" />   <!-- cuerpo -->
-        <rect x="0" y="4" width="2" height="2" />    <!-- bracito izq -->
-        <rect x="14" y="4" width="2" height="2" />   <!-- bracito der -->
+        <rect x="4" y="4" width="24" height="14" />   <!-- cuerpo -->
+        <rect x="0" y="8" width="4" height="4" />     <!-- bracito izq -->
+        <rect x="28" y="8" width="4" height="4" />    <!-- bracito der -->
       </g>
       <g class="legs">
-        <rect x="3" y="9" width="1" height="3" />
-        <rect x="5" y="9" width="1" height="3" />
-        <rect x="10" y="9" width="1" height="3" />
-        <rect x="12" y="9" width="1" height="3" />
+        <rect x="6" y="18" width="2" height="6" />
+        <rect x="10" y="18" width="2" height="6" />
+        <rect x="20" y="18" width="2" height="6" />
+        <rect x="24" y="18" width="2" height="6" />
       </g>
-      <g class="eyes">
-        <rect x="5" y="4" width="1" height="2" />
-        <rect x="10" y="4" width="1" height="2" />
+
+      <!-- Ojos normales: dos puntitos que parpadean -->
+      <g class="eyes face-normal">
+        <rect x="10" y="8" width="2" height="3" />
+        <rect x="20" y="8" width="2" height="3" />
+      </g>
+      <!-- Ojos felices: ^ ^ -->
+      <g class="eyes face-happy">
+        <rect x="9" y="10" width="1" height="1" /><rect x="10" y="9" width="2" height="1" /><rect x="12" y="10" width="1" height="1" />
+        <rect x="19" y="10" width="1" height="1" /><rect x="20" y="9" width="2" height="1" /><rect x="22" y="10" width="1" height="1" />
+      </g>
+      <!-- Ojos apretados: > < -->
+      <g class="eyes face-squint">
+        <rect x="9" y="7" width="1" height="1" /><rect x="10" y="8" width="1" height="1" /><rect x="11" y="9" width="1" height="1" />
+        <rect x="10" y="10" width="1" height="1" /><rect x="9" y="11" width="1" height="1" />
+        <rect x="22" y="7" width="1" height="1" /><rect x="21" y="8" width="1" height="1" /><rect x="20" y="9" width="1" height="1" />
+        <rect x="21" y="10" width="1" height="1" /><rect x="22" y="11" width="1" height="1" />
+      </g>
+
+      <!-- cachetes rosados -->
+      <g class="cheeks">
+        <rect x="6" y="12" width="3" height="1" />
+        <rect x="23" y="12" width="3" height="1" />
+      </g>
+      <!-- boquita chiquita: una sonrisa de 4 píxeles -->
+      <g class="mouth">
+        <rect x="14" y="12" width="1" height="1" />
+        <rect x="15" y="13" width="2" height="1" />
+        <rect x="17" y="12" width="1" height="1" />
       </g>
     </svg>
     <!-- "Zzz" cuando duerme (pausado) y "..." cuando piensa -->

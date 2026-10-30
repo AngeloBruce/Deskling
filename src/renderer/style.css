@@ -7,9 +7,10 @@
   --clawd: #d97757;        /* naranja de Clawd */
   --clawd-dark: #b85c3e;   /* patitas, un tono más oscuro */
   --eye: #1f1a17;
-  --bubble-bg: #fffaf5;
-  --bubble-fg: #2b2420;
-  --bubble-border: #e7d6c9;
+  --cheek: #f2a7a0;        /* cachetes rosados */
+  --bubble-bg: rgba(28, 24, 22, .92);  /* pastilla oscura, casi opaca */
+  --bubble-fg: #fdf3ec;
+  --bubble-border: #d97757;            /* borde naranja como Clawd */
 }
 
 html, body {
@@ -25,53 +26,58 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;   /* Clawd abajo, el globito encima */
-  align-items: center;
-  padding-bottom: 6px;
+  align-items: flex-end;       /* todo pegado a la derecha (Clawd vive en la esquina) */
+  padding: 0 8px 6px 0;
   box-sizing: border-box;
 }
 
 /* ---------- Globito ---------- */
+/* "Pastillita" oscura con borde naranja, compacta, pegada arriba de Clawd */
 #bubble {
-  position: relative;
-  max-width: 236px;
-  margin-bottom: 10px;
-  padding: 9px 12px;
+  max-width: 210px;
+  margin-bottom: 6px;
+  padding: 5px 10px;
   background: var(--bubble-bg);
   color: var(--bubble-fg);
   border: 2px solid var(--bubble-border);
-  border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.35;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .35);
   cursor: pointer;
   transition: opacity .25s, transform .25s;
 }
-/* la "colita" del globito que apunta a Clawd */
-#bubble::after {
-  content: "";
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  margin-left: -7px;
-  border: 7px solid transparent;
-  border-top-color: var(--bubble-bg);
-  border-bottom: 0;
-}
-#bubble.hidden { opacity: 0; transform: translateY(6px); pointer-events: none; }
-#bubble.alert { border-color: var(--clawd); } /* notificaciones: borde naranja */
+#bubble.hidden { opacity: 0; transform: translateY(4px) scale(.96); pointer-events: none; }
+/* notificaciones: borde más brillante y un brillito alrededor */
+#bubble.alert { border-color: #f08a63; box-shadow: 0 0 0 3px rgba(217, 119, 87, .25), 0 3px 10px rgba(0, 0, 0, .35); }
 
 /* ---------- Clawd ---------- */
 #clawd {
   position: relative;
-  width: 96px;
-  height: 78px;
+  width: 60px;   /* tamaño de Clawd: cambiá esto para agrandarlo o achicarlo */
+  height: 49px;
   -webkit-app-region: drag; /* se puede arrastrar la ventana agarrando a Clawd */
   cursor: grab;
 }
 #clawd svg { width: 100%; height: 100%; overflow: visible; }
 #clawd .body rect { fill: var(--clawd); }
 #clawd .legs rect { fill: var(--clawd-dark); }
-#clawd .eyes rect { fill: var(--eye); transform-box: fill-box; transform-origin: center; }
+#clawd .eyes rect { fill: var(--eye); }
+#clawd .mouth rect { fill: var(--eye); }
+#clawd .cheeks rect { fill: var(--cheek); opacity: .8; }
+
+/* --- Caras: solo se ve el grupo de ojos que dice data-face --- */
+#clawd .eyes { display: none; }
+#clawd[data-face="normal"] .face-normal,
+#clawd[data-face="happy"]  .face-happy,
+#clawd[data-face="squint"] .face-squint { display: inline; }
+/* con > < los cachetes se ponen más rosados */
+#clawd[data-face="squint"] .cheeks rect { opacity: 1; }
+
+/* hablando: la boquita se mueve */
+#clawd.talking .mouth { animation: chat .25s steps(1) infinite; }
+@keyframes chat { 50% { transform: translateY(-1px); } }
 
 .zzz, .dots {
   position: absolute;
@@ -86,10 +92,11 @@ body {
 
 /* idle: respira despacito y parpadea */
 #clawd.idle svg { animation: bob 2.4s ease-in-out infinite; }
-#clawd .eyes rect { animation: blink 4s infinite; }
+/* parpadeo: solo con los ojos normales (los ^ ^ y > < ya están "cerrados") */
+#clawd .face-normal { transform-box: fill-box; transform-origin: center; animation: blink 4s infinite; }
 
 /* thinking: mira para un costado y aparecen "···" */
-#clawd.thinking .eyes { transform: translateX(1px); }
+#clawd.thinking .face-normal { animation: none; transform: translateX(1px); }
 #clawd.thinking .dots { opacity: 1; animation: pulse 1s infinite; }
 
 /* talking: rebota */
@@ -100,7 +107,7 @@ body {
 #clawd.excited .legs rect:nth-child(odd) { animation: wiggle .2s infinite alternate; }
 
 /* sleeping (pausado): ojos cerrados y "zz" */
-#clawd.sleeping .eyes rect { transform: scaleY(.3); animation: none; }
+#clawd.sleeping .face-normal { transform: scaleY(.3); animation: none; }
 #clawd.sleeping .zzz { opacity: 1; animation: float 2s infinite; }
 #clawd.sleeping svg { animation: bob 4s ease-in-out infinite; }
 

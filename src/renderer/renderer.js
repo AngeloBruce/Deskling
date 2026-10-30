@@ -14,6 +14,29 @@ function setMood(mood) {
   clawdEl.className = mood;
 }
 
+/**
+ * Cambia la CARA: 'normal' (puntitos), 'happy' (^ ^) o 'squint' (> <).
+ * Si se pasa `ms`, vuelve a la cara normal después de ese tiempo.
+ */
+let faceTimer = null;
+function setFace(face, ms) {
+  clawdEl.dataset.face = face;
+  clearTimeout(faceTimer);
+  if (ms) faceTimer = setTimeout(() => { clawdEl.dataset.face = 'normal'; }, ms);
+}
+
+/**
+ * Caras al azar: cada 20–45 segundos, si está tranquilo, pone ^ ^ o > <
+ * un ratito para que se sienta vivo.
+ */
+function randomFace() {
+  if (clawdEl.className === 'idle' && clawdEl.dataset.face === 'normal') {
+    setFace(Math.random() < 0.6 ? 'happy' : 'squint', 1800);
+  }
+  setTimeout(randomFace, 20000 + Math.random() * 25000);
+}
+setTimeout(randomFace, 8000);
+
 /** Sonidito de aviso generado en el momento (no hace falta un archivo de audio). */
 function beep() {
   const ctx = new AudioContext();
@@ -43,6 +66,8 @@ window.clawd.onSay((msg) => {
   bubble.classList.toggle('alert', !!msg.alert);
   bubble.classList.remove('hidden');
   setMood(msg.alert ? 'excited' : 'talking');
+  // Notificación → > <   ·   comentario normal → ^ ^
+  setFace(msg.alert ? 'squint' : 'happy', 3500);
   if (msg.sound) beep();
 
   // Después de la animación vuelve al estado base.

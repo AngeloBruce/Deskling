@@ -19,6 +19,7 @@ class Brain {
    * @param {string} opts.model       modelo de texto
    * @param {string} opts.visionModel modelo que acepta imágenes (para capturas)
    * @param {string} opts.personality instrucciones de personalidad (system prompt)
+   * @param {object} [opts.extra]     campos extra para la API (de config.json → providers.X.extra)
    */
   constructor(opts) {
     this.opts = opts;
@@ -60,8 +61,12 @@ class Brain {
           { role: 'system', content: this.opts.personality },
           { role: 'user', content: userContent },
         ],
-        max_tokens: 120,   // comentarios cortos = menos gasto del plan gratis
+        // los modelos que "piensan" (gpt-oss) gastan tokens razonando antes de
+        // responder; 400 alcanza para pensar poquito + una frase corta
+        max_tokens: 400,
         temperature: 0.9,  // un poco de creatividad
+        // opciones propias del proveedor (ej: reasoning_effort), solo para el modelo de texto
+        ...(imageUrl ? {} : this.opts.extra || {}),
       }),
       signal: AbortSignal.timeout(25000), // si tarda más de 25 s, cortamos
     });

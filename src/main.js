@@ -28,13 +28,13 @@ const CONFIG_PATH = path.join(ROOT, 'config.json');
 // Configuración y API key
 // ---------------------------------------------------------------------------
 
-/** Lee el .env (líneas CLAVE=valor) sin dependencias externas. */
+/** Lee el .env (líneas CLAVE=valor) sin dependencias externas. El .env manda: pisa variables del sistema con el mismo nombre. */
 function loadEnv() {
   const file = path.join(ROOT, '.env');
   if (!fs.existsSync(file)) return;
   for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    if (m && m[2]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
   }
 }
 
@@ -91,7 +91,7 @@ function mood(m) {
 // ---------------------------------------------------------------------------
 
 function createWindow() {
-  const W = 260, H = 250;
+  const W = 240, H = 170; // ventana chiquita: solo Clawd + el globito
   const { workArea } = screen.getPrimaryDisplay();
   win = new BrowserWindow({
     width: W,
@@ -281,6 +281,7 @@ async function speak(reason, { force = false } = {}) {
     // Captura solo en check-ins o cuando lo tocás (las demás veces alcanza con el título).
     const image = (reason === 'checkin' || reason === 'poke') ? await safeScreenshot() : null;
     const text = await brain.comment(buildContext(reason), image);
+    debug('[brain]', reason, '→', text);
     state.lastSpoke = Date.now();
     if (reason === 'music') state.lastMusicSpoke = state.lastSpoke;
     if (text) say(text);
@@ -294,6 +295,7 @@ async function speak(reason, { force = false } = {}) {
       // plan gratis al límite: nos quedamos callados un rato, sin molestar
     } else {
       console.error('brain:', e.message);
+      debug('[brain-error]', e.message);
       if (force) say('Estoy sin señal 📡 (revisá internet o la API key)');
     }
   } finally {
@@ -386,6 +388,7 @@ app.whenReady().then(() => {
     model: p.model,
     visionModel: p.visionModel,
     personality: config.personality,
+    extra: p.extra,
   });
 
   createWindow();
