@@ -1,0 +1,76 @@
+# Clawd Buddy 🦀
+
+Un compañero de escritorio para Windows: un Clawd pixelado que vive en una esquina
+de la pantalla, mira qué música escuchas y en qué estás trabajando, te comenta
+cosas y te avisa de tus notificaciones **aunque tengas activado No molestar**.
+
+Usa IA gratis (Groq o NVIDIA) y filtra contraseñas, códigos y otros datos sensibles
+**antes** de mandar cualquier cosa.
+
+## Cómo usarlo
+
+1. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+2. Copia `.env.example` como `.env` y pon tu key gratis de Groq
+   (https://console.groq.com/keys).
+3. Arráncalo:
+   ```bash
+   npm start
+   ```
+
+- **Doble clic** en Clawd → opina ahora.
+- **Clic derecho** en Clawd (o en el ícono de la bandeja) → pausar, activar la captura de pantalla, ver el registro de seguridad, salir.
+- **Arrastrarlo** para moverlo.
+
+## Qué ve y qué manda
+
+| Fuente | Cómo se lee | ¿Sale de la PC? |
+|---|---|---|
+| Ventana activa | API de Windows (título + proceso) | Sí, el título filtrado. Las apps de `privateApps` se mandan como "[app privada]" |
+| Música | Control de medios de Windows (Spotify, YouTube, etc.) | Sí: artista y canción |
+| Notificaciones | `UserNotificationListener` de Windows | **No.** Se muestran solo en el globito; a la IA solo le llega el nombre de la app |
+| Captura (apagada por defecto) | Captura → OCR **local** de Windows → guard | Solo si el OCR no encontró nada sensible |
+
+## Seguridad (`src/guard.js`)
+
+Todo el texto pasa por el guard, que:
+- tacha API keys, tarjetas (validadas con Luhn), emails y teléfonos;
+- detecta palabras como *contraseña*, *código de verificación*, *OTP*, *PIN*… y tacha los códigos;
+- bloquea capturas que tengan algo de eso;
+- deja registrado en `logs/guard.log` **qué** bloqueó (nunca el dato).
+
+Pruebas: `npm test`.
+
+## Configuración (`config.json`)
+
+- `provider`: `groq` o `nvidia`.
+- `cooldownSeconds`, `musicCooldownSeconds`: cuánto espera entre comentarios.
+- `workCommentDelaySeconds`: cuánto tienes que quedarte en una app para que la comente.
+- `checkinMinutes`: cada cuánto hace un comentario general.
+- `screenCapture`: `true` para que también mire la pantalla (se puede cambiar desde el menú).
+- `privateApps`: palabras que, si aparecen en la app o el título, hacen que no mire ni mande nada.
+- `ignoredNotificationApps`: apps cuyas notificaciones ignora.
+- `personality`: la personalidad de Clawd.
+
+Depuración: con `CLAWD_DEBUG=1` escribe todo lo que pasa en `logs/debug.log`.
+
+## Estructura
+
+```
+src/
+  main.js              proceso principal: ventana, bandeja, decide cuándo hablar
+  brain.js             cliente de la IA (API compatible con OpenAI)
+  guard.js             filtro de datos sensibles
+  preload.js           puente seguro ventana ↔ main
+  sensors/
+    win-sensors.ps1    ventana activa, música y notificaciones (PowerShell)
+    ocr.ps1            OCR local de capturas
+    index.js           arranca los scripts y emite eventos
+  renderer/            el sprite de Clawd, el globito y las animaciones
+test/guard.test.js     pruebas del filtro
+```
+
+> Clawd es la mascota de Claude Code y una marca de Anthropic. Este es un proyecto
+> personal de fans, no es oficial.

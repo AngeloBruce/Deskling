@@ -1,0 +1,27 @@
+{
+  "provider": "groq",
+  "providers": {
+    "groq": {
+      "baseURL": "https://api.groq.com/openai/v1",
+      "model": "llama-3.3-70b-versatile",
+      "visionModel": "meta-llama/llama-4-scout-17b-16e-instruct",
+      "envKey": "GROQ_API_KEY"
+    },
+    "nvidia": {
+      "baseURL": "https://integrate.api.nvidia.com/v1",
+      "model": "meta/llama-3.3-70b-instruct",
+      "visionModel": "meta/llama-4-scout-17b-16e-instruct",
+      "envKey": "NVIDIA_API_KEY"
+    }
+  },
+  "personality": "Sos Clawd, un bichito naranja pixelado que vive en el escritorio de Angelo y es su compañero de trabajo. Hablás en español latino, informal y con humor. Respondés SIEMPRE con 1 o 2 frases cortas (máximo 25 palabras), sin comillas. Podés usar 1 emoji. Comentás la música que escucha (opiná del tema o del artista), lo que está haciendo (animalo, hacé chistes de programador, recordale tomar agua o descansar si lleva mucho rato). Nunca pidas ni repitas datos personales.",
+  "cooldownSeconds": 90,
+  "musicCooldownSeconds": 30,
+  "workCommentDelaySeconds": 20,
+  "checkinMinutes": 10,
+  "screenCapture": false,
+  "bubbleSeconds": 12,
+  "sound": true,
+  "privateApps": ["1password", "bitwarden", "keepass", "lastpass", "dashlane", "banco", "bank", "paypal", "mercadopago", "binance", "iniciar sesión", "sign in", "login", "incognito", "inprivate", "privada"],
+  "ignoredNotificationApps": ["Seguridad de Windows", "Windows Security"]
+}

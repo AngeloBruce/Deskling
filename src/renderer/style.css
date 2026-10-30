@@ -1,0 +1,113 @@
+/* =============================================================================
+   style.css — Apariencia de Clawd y su globito.
+   La ventana es transparente: todo lo que no dibujemos acá no se ve.
+   ============================================================================= */
+
+:root {
+  --clawd: #d97757;        /* naranja de Clawd */
+  --clawd-dark: #b85c3e;   /* patitas, un tono más oscuro */
+  --eye: #1f1a17;
+  --bubble-bg: #fffaf5;
+  --bubble-fg: #2b2420;
+  --bubble-border: #e7d6c9;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;   /* Clawd abajo, el globito encima */
+  align-items: center;
+  padding-bottom: 6px;
+  box-sizing: border-box;
+}
+
+/* ---------- Globito ---------- */
+#bubble {
+  position: relative;
+  max-width: 236px;
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  background: var(--bubble-bg);
+  color: var(--bubble-fg);
+  border: 2px solid var(--bubble-border);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.35;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+  cursor: pointer;
+  transition: opacity .25s, transform .25s;
+}
+/* la "colita" del globito que apunta a Clawd */
+#bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  margin-left: -7px;
+  border: 7px solid transparent;
+  border-top-color: var(--bubble-bg);
+  border-bottom: 0;
+}
+#bubble.hidden { opacity: 0; transform: translateY(6px); pointer-events: none; }
+#bubble.alert { border-color: var(--clawd); } /* notificaciones: borde naranja */
+
+/* ---------- Clawd ---------- */
+#clawd {
+  position: relative;
+  width: 96px;
+  height: 78px;
+  -webkit-app-region: drag; /* se puede arrastrar la ventana agarrando a Clawd */
+  cursor: grab;
+}
+#clawd svg { width: 100%; height: 100%; overflow: visible; }
+#clawd .body rect { fill: var(--clawd); }
+#clawd .legs rect { fill: var(--clawd-dark); }
+#clawd .eyes rect { fill: var(--eye); transform-box: fill-box; transform-origin: center; }
+
+.zzz, .dots {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  font-weight: 700;
+  color: var(--clawd);
+  opacity: 0;
+}
+
+/* --- Estados (la clase de #clawd la cambia renderer.js) --- */
+
+/* idle: respira despacito y parpadea */
+#clawd.idle svg { animation: bob 2.4s ease-in-out infinite; }
+#clawd .eyes rect { animation: blink 4s infinite; }
+
+/* thinking: mira para un costado y aparecen "···" */
+#clawd.thinking .eyes { transform: translateX(1px); }
+#clawd.thinking .dots { opacity: 1; animation: pulse 1s infinite; }
+
+/* talking: rebota */
+#clawd.talking svg { animation: hop .45s ease-in-out 3; }
+
+/* excited (llegó una notificación): salta más y mueve las patitas */
+#clawd.excited svg { animation: jump .35s ease-in-out 4; }
+#clawd.excited .legs rect:nth-child(odd) { animation: wiggle .2s infinite alternate; }
+
+/* sleeping (pausado): ojos cerrados y "zz" */
+#clawd.sleeping .eyes rect { transform: scaleY(.3); animation: none; }
+#clawd.sleeping .zzz { opacity: 1; animation: float 2s infinite; }
+#clawd.sleeping svg { animation: bob 4s ease-in-out infinite; }
+
+@keyframes bob    { 50% { transform: translateY(2px); } }
+@keyframes hop    { 50% { transform: translateY(-6px); } }
+@keyframes jump   { 50% { transform: translateY(-12px) rotate(-3deg); } }
+@keyframes wiggle { to { transform: translateY(-1px); } }
+@keyframes blink  { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+@keyframes pulse  { 50% { opacity: .3; } }
+@keyframes float  { 50% { transform: translate(3px, -4px); } }

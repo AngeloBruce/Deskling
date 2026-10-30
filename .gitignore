@@ -1,0 +1,11 @@
+# Dependencias
+node_modules/
+
+# Tu API key: NUNCA subirla
+.env
+
+# Registro de seguridad local
+logs/
+
+# Builds
+dist/

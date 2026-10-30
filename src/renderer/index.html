@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <!-- Solo permitimos recursos locales: la ventana no carga nada de internet -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Globito de texto (arriba). Se oculta solo después de unos segundos o con un clic. -->
+  <div id="bubble" class="hidden"></div>
+
+  <!--
+    Clawd dibujado en pixel art con SVG (cada <rect> es un bloque).
+    Grilla de 16x12: cuerpo, bracitos a los costados, 4 patitas y 2 ojos.
+    Lo animamos con clases CSS en #clawd (ver style.css).
+  -->
+  <div id="clawd" class="idle" title="Doble clic: que opine ahora · Clic derecho: menú">
+    <svg viewBox="0 0 16 13" shape-rendering="crispEdges">
+      <g class="body">
+        <rect x="2" y="2" width="12" height="7" />   <!-- cuerpo -->
+        <rect x="0" y="4" width="2" height="2" />    <!-- bracito izq -->
+        <rect x="14" y="4" width="2" height="2" />   <!-- bracito der -->
+      </g>
+      <g class="legs">
+        <rect x="3" y="9" width="1" height="3" />
+        <rect x="5" y="9" width="1" height="3" />
+        <rect x="10" y="9" width="1" height="3" />
+        <rect x="12" y="9" width="1" height="3" />
+      </g>
+      <g class="eyes">
+        <rect x="5" y="4" width="1" height="2" />
+        <rect x="10" y="4" width="1" height="2" />
+      </g>
+    </svg>
+    <!-- "Zzz" cuando duerme (pausado) y "..." cuando piensa -->
+    <span class="zzz">z<sup>z</sup></span>
+    <span class="dots">···</span>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
