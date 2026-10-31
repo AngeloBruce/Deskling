@@ -124,5 +124,6 @@
     "idleMinutes": 30,
     "minActiveMinutes": 30
   },
-  "autoStart": true
+  "autoStart": true,
+  "avoidEmojis": []
 }

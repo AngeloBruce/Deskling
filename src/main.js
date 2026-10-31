@@ -542,6 +542,7 @@ app.whenReady().then(() => {
     personality: config.personality,
     extra: p.extra,
     visionExtra: p.visionExtra,
+    avoidEmojis: config.avoidEmojis,
   });
 
   createWindow();

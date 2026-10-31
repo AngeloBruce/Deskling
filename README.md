@@ -65,6 +65,7 @@ Pruebas: `npm test`.
 - `privateApps`: palabras que, si aparecen en la app o el título, hacen que no mire ni mande nada.
 - `ignoredNotificationApps`: apps cuyas notificaciones ignora.
 - `personality`: la personalidad de Clawd.
+- `avoidEmojis`: emojis que Clawd nunca usa (si se le escapa uno, lo cambia por ✨).
 
 - `claudeCode`: avisos de Claude Code (ver abajo). `nagMinutes` = cuánto espera antes de enojarse.
 - `focus`: modo foco / pomodoro (`workMinutes`, `breakMinutes`, `longBreakMinutes`, `cyclesBeforeLongBreak`).

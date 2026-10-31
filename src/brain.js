@@ -21,6 +21,7 @@ class Brain {
    * @param {string} opts.personality instrucciones de personalidad (system prompt)
    * @param {object} [opts.extra]     campos extra para la API (de config.json → providers.X.extra)
    * @param {object} [opts.visionExtra] lo mismo pero para el modelo de visión
+   * @param {string[]} [opts.avoidEmojis] emojis que Clawd nunca usa (config.json → avoidEmojis)
    */
   constructor(opts) {
     this.opts = opts;
@@ -83,7 +84,7 @@ class Brain {
       body: JSON.stringify({
         model: imageUrl ? this.opts.visionModel : this.opts.model,
         messages: [
-          { role: 'system', content: this.opts.personality },
+          { role: 'system', content: this.systemPrompt() },
           { role: 'user', content: userContent },
         ],
         // los modelos que "piensan" (gpt-oss) gastan tokens razonando antes de
@@ -112,12 +113,26 @@ class Brain {
     }
 
     const data = await res.json();
-    const text = (data.choices?.[0]?.message?.content || '').trim().replace(/^"|"$/g, '');
+    const text = this.cleanEmojis((data.choices?.[0]?.message?.content || '').trim().replace(/^"|"$/g, ''));
 
     // Guardamos los últimos 8 comentarios.
     if (text) this.history.push(text);
     if (this.history.length > 8) this.history.shift();
     return text;
+  }
+
+  /** La personalidad + qué emojis no usar (si hay alguno en avoidEmojis). */
+  systemPrompt() {
+    const avoid = this.opts.avoidEmojis || [];
+    return avoid.length ? `${this.opts.personality}\nNo uses nunca estos emojis: ${avoid.join(' ')}` : this.opts.personality;
+  }
+
+  /** Por si el modelo los usa igual: cada emoji de avoidEmojis se cambia por ✨. */
+  cleanEmojis(text) {
+    // los más largos primero, así un emoji compuesto se cambia entera y no a pedazos
+    const avoid = [...(this.opts.avoidEmojis || [])].sort((a, b) => b.length - a.length);
+    for (const e of avoid) text = text.split(e).join('✨');
+    return text.replace(/\uFE0F/g, (m, i) => (text[i - 1] === '✨' ? '' : m)); // restos invisibles de variación
   }
 }
 
