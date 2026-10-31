@@ -14,6 +14,7 @@
 // =============================================================================
 
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, desktopCapturer, nativeImage, shell, powerMonitor } = require('electron');
+const { execFile } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
@@ -242,13 +243,33 @@ function loginItemOpts() {
   if (app.isPackaged) return { name: 'ClawdBuddy', path: `"${process.execPath}"` };
   return { name: 'ClawdBuddy', path: `"${process.execPath}"`, args: [`"${ROOT}"`] };
 }
-function applyAutoStart() {
+function applyAutoStart(force = false) {
   app.setLoginItemSettings({ openAtLogin: !!config.autoStart, ...loginItemOpts() });
+  if (config.autoStart) approveStartup(force);
 }
+
+/**
+ * Windows guarda aparte qué apps de inicio están ACTIVADAS (lo que muestra el
+ * Administrador de tareas → Aplicaciones de arranque). Si la nuestra no tiene
+ * marca, algunas versiones de Windows 11 la tratan como desactivada y no la abren.
+ * Electron debería escribirla pero no lo hace, así que la escribimos nosotros:
+ *   - si no hay marca → la ponemos como activada (02);
+ *   - si la desactivaste en el Administrador de tareas (03) → la respetamos,
+ *     salvo que la vuelvas a prender desde el menú de Clawd (force).
+ */
+const STARTUP_APPROVED = String.raw`HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`;
+function approveStartup(force) {
+  const enable = () => execFile('reg.exe', ['add', STARTUP_APPROVED, '/v', 'ClawdBuddy', '/t', 'REG_BINARY', '/d', '020000000000000000000000', '/f'],
+    { windowsHide: true }, (err) => debug('[arranque] marca de activado', err ? `falló: ${err.message}` : 'ok'));
+  if (force) return enable();
+  // reg query termina con error si el valor no existe
+  execFile('reg.exe', ['query', STARTUP_APPROVED, '/v', 'ClawdBuddy'], { windowsHide: true }, (err) => { if (err) enable(); });
+}
+
 function setAutoStart(on) {
   config.autoStart = on;
   saveConfig();
-  applyAutoStart();
+  applyAutoStart(true);
   say(on ? '🚀 ¡Listo! Cuando prendas la compu, aparezco solo.' : '👌 Ok, ya no arranco con Windows. Abrime con npm start.');
 }
 
