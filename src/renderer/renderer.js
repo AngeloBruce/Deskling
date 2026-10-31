@@ -11,6 +11,7 @@ let baseMood = 'idle'; // a qué estado vuelve después de hablar (idle o sleepi
 
 /** Cambia la animación de Clawd (ver estados en style.css). */
 function setMood(mood) {
+  if (clawdEl.className === 'bye') return; // despidiéndose: que nada lo interrumpa
   clawdEl.className = mood;
 }
 
@@ -161,6 +162,21 @@ window.clawd.onMenuClose(closeMenu); // la ventana perdió el foco (clic en otra
 // Clic en cualquier lado fuera del menú → se cierra.
 window.addEventListener('mousedown', (e) => {
   if (!menu.classList.contains('hidden') && !menu.contains(e.target) && e.button === 0) closeMenu();
+});
+
+// Despedida: saluda con el bracito, dice chau, salta y se encoge hasta desaparecer.
+// main.js cierra la app cuando termina (1.7 s).
+window.clawd.onGoodbye(() => {
+  closeMenu();
+  clearTimeout(danceTimer);
+  const span = document.createElement('span');
+  span.className = 'text';
+  span.textContent = '👋 ¡Chau! Nos vemos';
+  bubble.replaceChildren(span);
+  bubble.classList.remove('alert', 'hidden');
+  bubble.classList.add('bye');
+  setFace('happy');
+  setMood('bye');
 });
 
 // Teclado: Escape cierra, flechas recorren las opciones.

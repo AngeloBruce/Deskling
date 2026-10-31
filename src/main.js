@@ -187,8 +187,18 @@ const MENU_ACTIONS = {
   poke: () => speak('poke', { force: true }),
   guardlog: () => shell.openPath(guardLogPath()),
   config: () => shell.openPath(CONFIG_PATH),
-  quit: () => app.quit(),
+  quit: () => goodbye(),
 };
+
+/** Despedida: Clawd saluda y se encoge (renderer.js) y recién ahí cerramos. */
+let leaving = false;
+function goodbye() {
+  if (leaving) return;
+  leaving = true;
+  if (!win?.isVisible()) return app.quit(); // si estaba escondido, no hay nada que mostrar
+  win.webContents.send('goodbye');
+  setTimeout(() => app.quit(), 1700); // lo que dura la animación "bye" de style.css
+}
 
 function setCapture(on) {
   config.screenCapture = on;

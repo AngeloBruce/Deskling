@@ -183,6 +183,21 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
 }
 @keyframes step { 50% { transform: translateY(-1px); } }
 
+/* ---------- Despedida (al salir) ---------- */
+/* 0–55 %: saluda con el bracito derecho · 55–70 %: saltito · 70–100 %: se encoge */
+#clawd.bye { animation: bye 1.6s ease-in forwards; }
+#clawd.bye .body rect:nth-child(3) { transform-box: fill-box; transform-origin: 0 100%; animation: wave .22s ease-in-out 4 alternate; }
+@keyframes wave { to { transform: translateY(-3px) rotate(-25deg); } }
+@keyframes bye {
+  0%, 55% { transform: none; opacity: 1; }
+  65%     { transform: translateY(-10px) scale(1.05, .95); }
+  72%     { transform: translateY(0) scale(1.1, .85); }
+  100%    { transform: translateY(4px) scale(0); opacity: 0; }
+}
+/* el globito se va un poquito después que Clawd */
+#bubble.bye { animation: bubble-bye 1.6s ease-in forwards; }
+@keyframes bubble-bye { 0%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(6px) scale(.8); } }
+
 /* ---------- Menú propio (clic derecho) ---------- */
 /* Panel oscuro con borde naranja (igual que el globito), pegado al costado de
    Clawd. Esquinas "pixeladas": el borde redondeado lo hacemos con box-shadow
