@@ -15,6 +15,7 @@
 
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, desktopCapturer, nativeImage, shell } = require('electron');
 const fs = require('fs');
+const http = require('http');
 const os = require('os');
 const path = require('path');
 const guard = require('./guard');
@@ -60,6 +61,7 @@ const state = {
   appSince: Date.now(),  // desde cuándo estás en la app actual
   warnedNoKey: false,
   side: 'right',         // de qué lado de la ventana está Clawd (ver updateSide)
+  claudePending: null,   // aviso de Claude Code que todavía no fuiste a ver { kind, project, timer }
 };
 
 let win = null;
@@ -306,7 +308,12 @@ async function speak(reason, { force = false } = {}) {
     // Captura solo en check-ins o cuando lo tocás (las demás veces alcanza con el título).
     const image = (reason === 'checkin' || reason === 'poke') ? await safeScreenshot() : null;
     const text = await brain.comment(buildContext(reason), image);
-    debug('[brain]', reason, '→', text);
+    debug('[brain]', reason, image ? '(con captura)' : '', '→', text);
+    if (brain.lastVisionError) {
+      // La captura falló y comentó solo con el texto: lo dejamos anotado.
+      debug('[vision-error]', brain.lastVisionError);
+      brain.lastVisionError = null;
+    }
     state.lastSpoke = Date.now();
     if (reason === 'music') state.lastMusicSpoke = state.lastSpoke;
     if (text) say(text);
@@ -321,7 +328,15 @@ async function speak(reason, { force = false } = {}) {
     } else {
       console.error('brain:', e.message);
       debug('[brain-error]', e.message);
-      if (force) say('Estoy sin señal 📡 (revisá internet o la API key)');
+      // Solo avisamos si lo pediste vos (doble clic / menú); si no, silencio.
+      if (force) {
+        const msgs = {
+          BAD_KEY: '🔑 La API key no funciona. Revisala en el .env.',
+          NO_MODEL: '🤖 El modelo de IA no está disponible. Cambialo en config.json.',
+        };
+        const offline = e.name === 'TimeoutError' || e.name === 'TypeError'; // fetch sin internet
+        say(msgs[e.message] || (offline ? 'Estoy sin señal 📡 Revisá tu internet.' : '😵 Algo falló con la IA. Mirá logs/debug.log.'));
+      }
     }
   } finally {
     state.busy = false;
@@ -342,6 +357,8 @@ function wireSensors() {
     if (/^electron$/i.test(proc) || title === 'Clawd Buddy') return;
     const priv = isPrivate(proc, title);
     const clean = priv ? '[app privada]' : guard.check('ventana', title).clean;
+    // ¿Fuiste a mirar a Claude? Entonces ya no hace falta insistir.
+    if (state.claudePending && isClaudeApp(proc)) clearClaudePending();
     const changedApp = state.window?.process !== proc;
     state.window = { process: proc, title: clean, private: priv };
     if (changedApp) {
@@ -359,6 +376,8 @@ function wireSensors() {
       artist: guard.check('musica', m.artist || '').clean,
       title: guard.check('musica', m.title || '').clean,
     };
+    // Baile: solo cuando la música viene de Spotify (en otras apps no baila).
+    win?.webContents.send('music', { spotifyPlaying: !!m.playing && /spotify/i.test(m.source || '') });
     const track = `${m.artist}|${m.title}`;
     if (m.playing && m.title && track !== state.lastTrack) {
       state.lastTrack = track;
@@ -414,6 +433,7 @@ app.whenReady().then(() => {
     visionModel: p.visionModel,
     personality: config.personality,
     extra: p.extra,
+    visionExtra: p.visionExtra,
   });
 
   createWindow();
@@ -441,6 +461,8 @@ app.whenReady().then(() => {
   // Check-in periódico (con captura si está activada).
   setInterval(() => speak('checkin'), config.checkinMinutes * 60 * 1000);
 
+  if (config.claudeCode?.enabled) startClaudeServer();
+
   // Recordatorios de bienestar (espalda, agua, ojos…), sin usar la IA.
   setInterval(wellnessTip, config.wellness.everyMinutes * 60 * 1000);
 });
@@ -462,3 +484,67 @@ function wellnessTip() {
 
 app.on('before-quit', () => sensors?.stop());
 app.on('window-all-closed', () => app.quit());
+
+// ---------------------------------------------------------------------------
+// Avisos de Claude Code
+//
+// hooks/clawd-hook.js (lo ejecuta Claude Code) nos manda un POST a
+// http://127.0.0.1:<puerto>/claude cuando Claude termina ("Stop") o necesita
+// algo ("Notification"). Si no vas a mirar en `nagMinutes`, Clawd se enoja >:(
+// El servidor solo escucha en 127.0.0.1: nada de afuera de tu PC puede usarlo.
+// ---------------------------------------------------------------------------
+
+/** ¿Este proceso es donde usás Claude Code? (app de Claude, terminal, VS Code…) */
+function isClaudeApp(proc) {
+  return config.claudeCode.apps.some((a) => proc.toLowerCase() === a.toLowerCase());
+}
+
+function clearClaudePending() {
+  clearTimeout(state.claudePending?.timer);
+  state.claudePending = null;
+}
+
+function startClaudeServer() {
+  const server = http.createServer((req, res) => {
+    if (req.method !== 'POST' || req.url !== '/claude') { res.writeHead(404).end(); return; }
+    let body = '';
+    req.on('data', (d) => { body += d; if (body.length > 10000) req.destroy(); }); // límite por las dudas
+    req.on('end', () => {
+      res.writeHead(204).end();
+      try { onClaudeEvent(JSON.parse(body)); } catch (e) { debug('[claude] JSON inválido', e.message); }
+    });
+  });
+  server.on('error', (e) => debug('[claude] servidor:', e.message)); // ej: puerto ocupado
+  server.listen(config.claudeCode.port, '127.0.0.1', () => debug('[claude] escuchando en', config.claudeCode.port));
+}
+
+/** Llega un evento de Claude Code. */
+function onClaudeEvent({ event, message, cwd }) {
+  debug('[claude]', event, message);
+  if (state.paused) return;
+  // Si ya estás mirando a Claude, no hace falta avisarte.
+  if (state.window && isClaudeApp(state.window.process)) return;
+
+  const project = guard.check('claude', path.basename(cwd || '') || 'tu proyecto').clean;
+  const needsYou = event === 'Notification';
+  const detail = needsYou ? guard.check('claude', message || '').clean : '';
+
+  if (needsYou) {
+    // "Claude needs your permission to use Bash" / "Claude is waiting for your input"
+    const text = /permission/i.test(detail) ? `🔐 Claude necesita tu permiso en ${project}` : `⏳ Claude te está esperando en ${project}`;
+    say(text, { alert: true, sound: config.sound, face: 'squint' });
+  } else {
+    say(`✅ ¡Claude terminó en ${project}!`, { sound: config.sound, face: 'happy' });
+  }
+
+  // Si en `nagMinutes` no fuiste a mirar → carita enojada.
+  clearClaudePending();
+  const kind = needsYou ? 'te necesita' : 'terminó';
+  state.claudePending = {
+    timer: setTimeout(() => {
+      if (state.paused) return;
+      say(`😤 ¡Oye! Claude ${kind} hace rato en ${project}. ¿Qué haces?`, { alert: true, sound: config.sound, face: 'angry', seconds: 20 });
+      state.claudePending = null;
+    }, config.claudeCode.nagMinutes * 60 * 1000),
+  };
+}

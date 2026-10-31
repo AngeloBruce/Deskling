@@ -14,7 +14,7 @@
     Clawd dibujado en pixel art con SVG (cada <rect> es un píxel o bloque).
     Grilla de 32x26 (el doble que antes) para que la carita tenga detalle.
     - #clawd tiene una clase de ANIMACIÓN (idle, talking, excited…)
-    - y un atributo data-face con la CARA: normal, happy (^ ^) o squint (> <).
+    - y un atributo data-face con la CARA: normal, happy (^ ^), squint (> <) o angry (enojado).
     style.css muestra solo el grupo de ojos que corresponde a la cara.
   -->
   <div id="clawd" class="idle" data-face="normal" title="Doble clic: que opine ahora · Clic derecho: menú">
@@ -49,10 +49,24 @@
         <rect x="21" y="10" width="1" height="1" /><rect x="22" y="11" width="1" height="1" />
       </g>
 
+      <!-- Ojos enojados: cejas en diagonal hacia el centro + ojito abajo -->
+      <g class="eyes face-angry">
+        <rect x="8" y="7" width="1" height="1" /><rect x="9" y="8" width="1" height="1" /><rect x="10" y="9" width="2" height="1" />
+        <rect x="10" y="10" width="2" height="2" />
+        <rect x="23" y="7" width="1" height="1" /><rect x="22" y="8" width="1" height="1" /><rect x="20" y="9" width="2" height="1" />
+        <rect x="20" y="10" width="2" height="2" />
+      </g>
+
       <!-- cachetes rosados -->
       <g class="cheeks">
         <rect x="6" y="12" width="3" height="1" />
         <rect x="23" y="12" width="3" height="1" />
+      </g>
+      <!-- boquita enojada: la sonrisa al revés -->
+      <g class="mouth-angry">
+        <rect x="14" y="14" width="1" height="1" />
+        <rect x="15" y="13" width="2" height="1" />
+        <rect x="17" y="14" width="1" height="1" />
       </g>
       <!-- boquita chiquita: una sonrisa de 4 píxeles -->
       <g class="mouth">

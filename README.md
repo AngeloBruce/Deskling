@@ -54,6 +54,22 @@ Pruebas: `npm test`.
 - `ignoredNotificationApps`: apps cuyas notificaciones ignora.
 - `personality`: la personalidad de Clawd.
 
+- `claudeCode`: avisos de Claude Code (ver abajo). `nagMinutes` = cuánto espera antes de enojarse.
+
+## Avisos de Claude Code
+
+`hooks/clawd-hook.js` se registra como hook `Stop` y `Notification` en `~/.claude/settings.json`:
+
+```json
+"hooks": {
+  "Stop":         [{ "hooks": [{ "type": "command", "command": "node \"C:/ruta/a/clawd-buddy/hooks/clawd-hook.js\"", "timeout": 5 }] }],
+  "Notification": [{ "hooks": [{ "type": "command", "command": "node \"C:/ruta/a/clawd-buddy/hooks/clawd-hook.js\"", "timeout": 5 }] }]
+}
+```
+
+Cuando Claude termina o te pide permiso, Clawd te avisa (si no estás mirando la app de Claude, la terminal o VS Code).
+Si no vas a verlo en `nagMinutes`, se enoja 😤. El hook solo habla con `127.0.0.1` y si Clawd está cerrado no hace nada.
+
 Depuración: con `CLAWD_DEBUG=1` escribe todo lo que pasa en `logs/debug.log`.
 
 ## Estructura

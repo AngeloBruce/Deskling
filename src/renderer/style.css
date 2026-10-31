@@ -100,6 +100,16 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
 #clawd[data-face="normal"] .face-normal,
 #clawd[data-face="happy"]  .face-happy,
 #clawd[data-face="squint"] .face-squint { display: inline; }
+#clawd[data-face="angry"]  .face-angry { display: inline; }
+/* boca: la enojada solo se ve con cara de enojo (y ahí se esconde la sonrisa) */
+#clawd .mouth-angry rect { fill: var(--eye); }
+#clawd .mouth-angry { display: none; }
+#clawd[data-face="angry"] .mouth-angry { display: inline; }
+#clawd[data-face="angry"] .mouth { display: none; }
+/* enojado: se pone más rojito y tiembla */
+#clawd[data-face="angry"] .body rect { fill: #e2614a; }
+#clawd[data-face="angry"] { animation: grr .12s linear 8; }
+@keyframes grr { 25% { transform: translateX(-1px); } 75% { transform: translateX(1px); } }
 /* con > < los cachetes se ponen más rosados */
 #clawd[data-face="squint"] .cheeks rect { opacity: 1; }
 
@@ -159,3 +169,16 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
   75%  { transform: scale(.98, 1.03); }
   100% { transform: scale(1, 1); }
 }
+
+/* ---------- Baile (solo con Spotify): balanceo suave de lado a lado ---------- */
+#clawd.dancing svg { animation: sway .9s ease-in-out infinite; transform-origin: 50% 100%; }
+/* las patitas se turnan, como marcando el ritmo */
+#clawd.dancing .legs rect:nth-child(odd)  { animation: step .45s steps(1) infinite; }
+#clawd.dancing .legs rect:nth-child(even) { animation: step .45s steps(1) infinite .225s; }
+@keyframes sway {
+  0%, 100% { transform: rotate(-5deg) translateY(0); }
+  25%      { transform: rotate(0deg) translateY(-2px); }
+  50%      { transform: rotate(5deg) translateY(0); }
+  75%      { transform: rotate(0deg) translateY(-2px); }
+}
+@keyframes step { 50% { transform: translateY(-1px); } }

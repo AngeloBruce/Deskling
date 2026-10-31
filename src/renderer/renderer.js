@@ -15,7 +15,7 @@ function setMood(mood) {
 }
 
 /**
- * Cambia la CARA: 'normal' (puntitos), 'happy' (^ ^) o 'squint' (> <).
+ * Cambia la CARA: 'normal' (puntitos), 'happy' (^ ^), 'squint' (> <) o 'angry' (enojado).
  * Si se pasa `ms`, vuelve a la cara normal después de ese tiempo.
  */
 let faceTimer = null;
@@ -56,10 +56,11 @@ function beep() {
 
 /**
  * Muestra un mensaje en el globito.
- * msg = { text, alert?, sound?, seconds? }
+ * msg = { text, alert?, sound?, seconds?, face? }
  *   alert   → borde naranja y Clawd salta (notificaciones)
  *   sound   → hace "pip"
  *   seconds → cuánto queda visible
+ *   face    → forzar una cara: 'happy', 'squint' o 'angry'
  */
 window.clawd.onSay((msg) => {
   const span = document.createElement('span'); // ver #bubble .text en style.css
@@ -69,8 +70,9 @@ window.clawd.onSay((msg) => {
   bubble.classList.toggle('alert', !!msg.alert);
   bubble.classList.remove('hidden');
   setMood(msg.alert ? 'excited' : 'talking');
-  // Notificación → > <   ·   comentario normal → ^ ^
-  setFace(msg.alert ? 'squint' : 'happy', 3500);
+  // Cara: la que pida main (msg.face) o, si no, notificación → > <  ·  comentario → ^ ^
+  const face = msg.face || (msg.alert ? 'squint' : 'happy');
+  setFace(face, face === 'angry' ? 7000 : 3500);
   if (msg.sound) beep();
 
   // Después de la animación vuelve al estado base.
@@ -158,3 +160,27 @@ function blop() {
 // Main nos dice de qué lado está Clawd ('left' o 'right'); style.css acomoda
 // a Clawd y al globito según body[data-side].
 window.clawd.onSide((side) => { document.body.dataset.side = side; });
+
+// -----------------------------------------------------------------------------
+// Baile: mientras suena Spotify, de vez en cuando (cada 25–60 s) se balancea
+// unos segundos con cara feliz. Si está hablando o pensando, no baila.
+// -----------------------------------------------------------------------------
+let spotifyPlaying = false;
+let danceTimer = null;
+
+window.clawd.onMusic(({ spotifyPlaying: playing }) => {
+  spotifyPlaying = playing;
+  clearTimeout(danceTimer);
+  if (playing) danceTimer = setTimeout(maybeDance, 4000); // primer bailecito al rato de arrancar
+  else if (clawdEl.className === 'dancing') setMood(baseMood);
+});
+
+function maybeDance() {
+  if (!spotifyPlaying) return;
+  if (clawdEl.className === 'idle') {
+    setMood('dancing');
+    setFace('happy', 6000);
+    setTimeout(() => { if (clawdEl.className === 'dancing') setMood(baseMood); }, 6000);
+  }
+  danceTimer = setTimeout(maybeDance, 25000 + Math.random() * 35000);
+}

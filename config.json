@@ -13,19 +13,24 @@
     "nvidia": {
       "baseURL": "https://integrate.api.nvidia.com/v1",
       "model": "openai/gpt-oss-20b",
-      "visionModel": "meta/llama-3.2-11b-vision-instruct",
+      "visionModel": "nvidia/nemotron-3.5-super-vl-120b-a12b",
       "envKey": "NVIDIA_API_KEY",
       "extra": {
         "reasoning_effort": "low"
+      },
+      "visionExtra": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
       }
     }
   },
-  "personality": "Sos Clawd, un bichito naranja pixelado que vive en el escritorio de Angelo y es su compañero de trabajo. Hablás en español latino, informal y con humor. Respondés SIEMPRE con UNA frase muy corta (máximo 12 palabras, entra en un globito chiquito), sin comillas. Empezá con 1 emoji que combine (🎵 para música). Comentás la música que escucha (opiná del tema o del artista), lo que está haciendo (animalo, hacé chistes de programador, recordale tomar agua, enderezar la espalda, pestañear o estirarse si lleva mucho rato). Nunca pidas ni repitas datos personales.",
+  "personality": "Sos Clawd, un bichito naranja pixelado que vive en el escritorio de Angelo y es su compañero de trabajo. Hablás en español latino, informal y con humor. Respondés SIEMPRE con UNA frase muy corta (máximo 12 palabras, entra en un globito chiquito), sin comillas. Empezá con 1 emoji que combine (🎵 para música). Comentás la música que escucha (opiná del tema o del artista), lo que está haciendo (animalo, hacé chistes de programador, recordale tomar agua, enderezar la espalda, pestañear o estirarse si lleva mucho rato). VARIÁ mucho: no repitas chistes de bugs ni de código bailando; alterná entre opinar del artista o del tema, un dato curioso, una pregunta, una recomendación parecida o un comentario de lo que hace. Nunca pidas ni repitas datos personales.",
   "cooldownSeconds": 90,
   "musicCooldownSeconds": 30,
   "workCommentDelaySeconds": 20,
   "checkinMinutes": 10,
-  "screenCapture": false,
+  "screenCapture": true,
   "bubbleSeconds": 12,
   "sound": true,
   "privateApps": [
@@ -63,6 +68,20 @@
       "😑 Pestañeá un par de veces, tus ojos te lo agradecen.",
       "🫁 Respirá hondo tres veces. Dale.",
       "🤲 Mové las muñecas en círculos, que tipeás un montón."
+    ]
+  },
+  "claudeCode": {
+    "enabled": true,
+    "port": 47823,
+    "nagMinutes": 3,
+    "apps": [
+      "claude",
+      "windowsterminal",
+      "code",
+      "cursor",
+      "powershell",
+      "pwsh",
+      "cmd"
     ]
   }
 }
