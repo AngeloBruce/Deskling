@@ -123,5 +123,6 @@
     "afterHour": 18,
     "idleMinutes": 30,
     "minActiveMinutes": 30
-  }
+  },
+  "autoStart": true
 }

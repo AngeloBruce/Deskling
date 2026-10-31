@@ -76,6 +76,10 @@ Clic derecho → **Modo foco**. Mientras dura (25 min por defecto):
 
 Al lado de Clawd aparece un contador (🍅 en foco, ☕ en el descanso). Cada 4 focos toca descanso largo.
 
+## Arrancar con Windows
+
+Clawd se abre solo cuando iniciás sesión en Windows. Se apaga y se prende desde el menú → **"Abrir al iniciar"** (o `autoStart` en `config.json`). Lo que hace es escribir una entrada `ClawdBuddy` en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, que es solo de tu usuario y no necesita permisos de administrador. Para verla o borrarla a mano: Administrador de tareas → Aplicaciones de arranque.
+
 ## Resumen del día
 
 Clawd cuenta cuánto tiempo pasás en cada app, las canciones, los pomodoros, las veces que terminó Claude Code y las notificaciones. Todo se guarda en tu PC (`logs/stats-AAAA-MM-DD.json`) y solo cuenta el nombre de la app, nunca el título de la ventana.

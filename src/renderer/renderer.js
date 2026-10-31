@@ -118,6 +118,7 @@ const ICONS = {
   shield: ['.#####.', '#######', '###.###', '##...##', '.#####.', '..###..', '...#...'],
   gear:   ['..#.#..', '.#####.', '##...##', '.#...#.', '##...##', '.#####.', '..#.#..'],
   bye:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
+  power:  ['...#...', '.#.#.#.', '#..#..#', '#..#..#', '#.....#', '.#...#.', '..###..'], // arrancar con Windows
   chart:  ['......#', '......#', '...#..#', '...#..#', '#..#..#', '#..#..#', '#######'], // resumen del día
   // modo foco: tomatito (pomodoro) y tacita (descanso)
   tomato: ['..#.#..', '...#...', '.#####.', '#######', '#######', '#######', '.#####.'],
@@ -166,7 +167,7 @@ function setPlaying(playing) {
 }
 
 /** Main nos pide abrir el menú y nos dice el estado actual. */
-window.clawd.onMenuOpen(({ paused, screenCapture, focusing, music }) => {
+window.clawd.onMenuOpen(({ paused, screenCapture, autoStart, focusing, music }) => {
   const row = menu.querySelector('.music-row');
   row.classList.toggle('hidden', !music);
   if (music) {
@@ -180,6 +181,7 @@ window.clawd.onMenuOpen(({ paused, screenCapture, focusing, music }) => {
   focus.querySelector('span').textContent = focusing ? 'Terminar foco' : 'Modo foco';
   setIcon(focus, focusing ? 'stop' : 'tomato');
   menu.querySelector('[data-action="capture"]').setAttribute('aria-checked', String(screenCapture));
+  menu.querySelector('[data-action="autostart"]').setAttribute('aria-checked', String(!!autoStart));
 
   // reiniciamos las animaciones de apertura sacando y poniendo el menú
   menu.classList.add('hidden');

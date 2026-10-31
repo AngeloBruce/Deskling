@@ -101,7 +101,7 @@ function mood(m) {
 
 // Medidas de la ventana. Clawd va en una esquina de abajo de la ventana
 // (derecha o izquierda según `state.side`) y el globito crece hacia el otro lado.
-const WIN_W = 260, WIN_H = 250; // alto: lo justo para que entre el menú (y la tarjeta del resumen)
+const WIN_W = 260, WIN_H = 272; // alto: lo justo para que entre el menú (y la tarjeta del resumen)
 const CLAWD_W = 60, CLAWD_PAD = 8; // ancho del sprite y margen al borde (igual que style.css)
 
 function createWindow() {
@@ -195,6 +195,7 @@ const MENU_ACTIONS = {
   'music-next': () => musicCommand('next'),
   'music-prev': () => musicCommand('prev'),
   capture: () => setCapture(!config.screenCapture),
+  autostart: () => setAutoStart(!config.autoStart),
   poke: () => speak('poke', { force: true }),
   guardlog: () => shell.openPath(guardLogPath()),
   config: () => shell.openPath(CONFIG_PATH),
@@ -211,6 +212,27 @@ function goodbye() {
   setTimeout(() => app.quit(), 1700); // lo que dura la animación "bye" de style.css
 }
 
+/**
+ * Arrancar con Windows: Electron escribe una entrada en
+ * HKCU\Software\Microsoft\Windows\CurrentVersion\Run (solo tu usuario, sin admin).
+ * Mientras no haya instalador (.exe), lo que se registra es electron.exe + la
+ * carpeta del proyecto, que es lo mismo que hace `npm start`.
+ */
+function loginItemOpts() {
+  if (app.isPackaged) return { name: 'ClawdBuddy' };
+  // entre comillas: la carpeta tiene espacios ("probar claude") y Windows la cortaría ahí
+  return { name: 'ClawdBuddy', path: `"${process.execPath}"`, args: [`"${ROOT}"`] };
+}
+function applyAutoStart() {
+  app.setLoginItemSettings({ openAtLogin: !!config.autoStart, ...loginItemOpts() });
+}
+function setAutoStart(on) {
+  config.autoStart = on;
+  saveConfig();
+  applyAutoStart();
+  say(on ? '🚀 ¡Listo! Cuando prendas la compu, aparezco solo.' : '👌 Ok, ya no arranco con Windows. Abrime con npm start.');
+}
+
 function setCapture(on) {
   config.screenCapture = on;
   saveConfig();
@@ -224,6 +246,7 @@ function buildMenu() {
   return Menu.buildFromTemplate([
     { label: state.paused ? '▶ Despertar a Clawd' : '⏸ Pausar (dormir)', click: MENU_ACTIONS.pause },
     { label: 'Ver mi pantalla (captura)', type: 'checkbox', checked: config.screenCapture, click: MENU_ACTIONS.capture },
+    { label: 'Arrancar con Windows', type: 'checkbox', checked: !!config.autoStart, click: MENU_ACTIONS.autostart },
     { label: '💬 Opiná ahora', click: MENU_ACTIONS.poke },
     { label: pomodoro.active ? '🍅 Terminar foco' : `🍅 Modo foco (${config.focus.workMinutes} min)`, click: MENU_ACTIONS.focus },
     { label: '⏯ Música: play / pausa', click: MENU_ACTIONS['music-toggle'] },
@@ -503,6 +526,7 @@ app.whenReady().then(() => {
 
   createWindow();
   createTray();
+  applyAutoStart(); // deja el registro de Windows igual que config.autoStart
 
   // Clic derecho sobre Clawd → el menú propio. Le pasamos el estado actual
   // (pausado, captura) para que muestre los interruptores bien.
@@ -512,6 +536,7 @@ app.whenReady().then(() => {
     win.webContents.send('menu-open', {
       paused: state.paused,
       screenCapture: config.screenCapture,
+      autoStart: !!config.autoStart,
       focusing: pomodoro.active,
       // la canción (ya filtrada por el guard) para la fila de controles de música
       music: m?.title ? { title: m.title, artist: m.artist, playing: !!m.playing } : null,
