@@ -20,6 +20,10 @@ const APP_NAMES = {
   privada: 'App privada', // las de config.privateApps: no guardamos cuál era
 };
 
+// Partes de Windows que aparecen como "ventana activa" pero no son apps que
+// uses (menú Inicio, búsqueda, centro de notificaciones, pantalla de bloqueo).
+const IGNORED = new Set(['searchhost', 'shellhost', 'shellexperiencehost', 'startmenuexperiencehost', 'lockapp', 'applicationframehost', '']);
+
 function prettyApp(proc) {
   const key = String(proc || '').toLowerCase();
   return APP_NAMES[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '¿?');
@@ -39,8 +43,14 @@ function today(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** 23.1 h → "23:06" */
+function clock(ms) {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 function empty(date) {
-  return { date, apps: {}, songs: 0, artists: {}, pomodoros: 0, claude: 0, notifications: 0, distractSec: 0, summaryShown: false };
+  return { date, since: 0, apps: {}, songs: 0, artists: {}, pomodoros: 0, claude: 0, notifications: 0, distractSec: 0, summaryShown: false };
 }
 
 class DayStats {
@@ -68,7 +78,13 @@ class DayStats {
     return this.data;
   }
 
-  addApp(proc, sec) { const d = this.roll(); const n = prettyApp(proc); d.apps[n] = (d.apps[n] || 0) + sec; }
+  addApp(proc, sec) {
+    if (IGNORED.has(String(proc || '').toLowerCase())) return;
+    const d = this.roll();
+    if (!d.since) d.since = Date.now() - sec * 1000; // desde cuándo contamos hoy
+    const n = prettyApp(proc);
+    d.apps[n] = (d.apps[n] || 0) + sec;
+  }
   song(artist) { const d = this.roll(); d.songs++; if (artist) d.artists[artist] = (d.artists[artist] || 0) + 1; }
   pomodoro() { this.roll().pomodoros++; }
   claude() { this.roll().claude++; }
@@ -81,7 +97,9 @@ class DayStats {
   /** Las líneas de la tarjeta del resumen (sin la frase de la IA). */
   lines() {
     const d = this.roll();
-    const out = [`📊 Tu día: ${fmt(this.totalSec())} en la compu`];
+    // "desde las…": si Clawd se abrió tarde, que se entienda por qué hay pocos minutos
+    const since = d.since ? ` (desde las ${clock(d.since)})` : '';
+    const out = [`📊 Tu día${since}: ${fmt(this.totalSec())} en la compu`];
     const top = Object.entries(d.apps).sort((a, b) => b[1] - a[1]).slice(0, 3);
     if (top.length) out.push('💻 ' + top.map(([n, s]) => `${n} ${fmt(s)}`).join(' · '));
     const work = [];
@@ -98,4 +116,4 @@ class DayStats {
   }
 }
 
-module.exports = { DayStats, fmt, prettyApp, today };
+module.exports = { DayStats, fmt, prettyApp, today, clock };

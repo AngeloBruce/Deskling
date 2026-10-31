@@ -655,6 +655,12 @@ function clearClaudePending() {
 function startClaudeServer() {
   const server = http.createServer((req, res) => {
     if (req.method !== 'POST' || req.url !== '/claude') { res.writeHead(404).end(); return; }
+    // Solo el hook de Claude Code, no páginas web: un navegador manda "Origin" y no
+    // puede mandar JSON a otro sitio sin pedir permiso antes (y acá no se lo damos).
+    if (req.headers.origin || !String(req.headers['content-type']).startsWith('application/json')) {
+      res.writeHead(403).end();
+      return;
+    }
     let body = '';
     req.on('data', (d) => { body += d; if (body.length > 10000) req.destroy(); }); // límite por las dudas
     req.on('end', () => {
@@ -810,7 +816,8 @@ const stats = new DayStats(LOGS);
 /** Cada 10 s: sumá esos 10 s a la app activa (si estás frente a la compu). */
 function trackDay() {
   const w = state.window;
-  if (!w || powerMonitor.getSystemIdleTime() > 120) return; // 2 min sin tocar nada = no estás
+  // 5 min sin tocar mouse ni teclado = no estás (menos que eso: leyendo, mirando un video corto…)
+  if (!w || powerMonitor.getSystemIdleTime() > 300) return;
   stats.addApp(w.private ? 'privada' : w.process, 10);
   if (state.distractSince) stats.distract(10);
 }
