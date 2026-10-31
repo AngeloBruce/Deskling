@@ -39,9 +39,10 @@ class Brain {
    * Pide un comentario.
    * @param {string} context        texto ya filtrado por el guard
    * @param {string|null} imageUrl  captura como data URL (jpeg base64) o null
+   * @param {string} [textContext]  contexto para el respaldo sin imagen (si no, usa `context`)
    * @returns {Promise<string>}     el comentario de Clawd
    */
-  async comment(context, imageUrl = null) {
+  async comment(context, imageUrl = null, textContext = context) {
     if (!this.opts.apiKey) throw new Error('NO_KEY');
     if (this.isRateLimited()) throw new Error('RATE_LIMITED');
 
@@ -61,7 +62,7 @@ class Brain {
         this.visionBrokenUntil = Date.now() + 30 * 60 * 1000;
       }
     }
-    return this.request(context, null);
+    return this.request(textContext, null);
   }
 
   /** Hace la llamada a la API (con o sin imagen). */

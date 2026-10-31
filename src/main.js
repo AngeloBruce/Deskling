@@ -280,8 +280,13 @@ async function safeScreenshot() {
 // Hablar con la IA
 // ---------------------------------------------------------------------------
 
-/** Arma el texto de contexto que va a la IA. Todo ya pasó por el guard. */
-function buildContext(reason) {
+/**
+ * Arma el texto de contexto que va a la IA. Todo ya pasó por el guard.
+ * Con `withImage`, le pedimos que hable de la CAPTURA y no le pasamos la
+ * música (si se la pasamos, siempre termina comentando la canción porque es
+ * lo más fácil).
+ */
+function buildContext(reason, withImage = false) {
   const lines = [];
   const reasons = {
     music: 'Acaba de cambiar la canción. Comentá la música.',
@@ -290,6 +295,11 @@ function buildContext(reason) {
     poke: 'Te tocaron para que digas algo. Comentá lo que veas.',
   };
   lines.push(reasons[reason] || reasons.checkin);
+  if (withImage) {
+    lines.push('Tenés una CAPTURA de su pantalla adjunta: comentá algo CONCRETO que se vea en ella '
+      + '(el código, la página, el chat, un error, lo que esté haciendo). Esta vez NO hables de la música, '
+      + 'y usá un emoji que tenga que ver con lo que ves.');
+  }
 
   const w = state.window;
   if (w) {
@@ -300,8 +310,10 @@ function buildContext(reason) {
     if (mins >= 1) lines.push(`Lleva ${mins} min en esa app.`);
   }
   const m = state.media;
-  if (m?.playing && m.title) lines.push(`Está escuchando: ${m.artist ? m.artist + ' - ' : ''}${m.title}`);
-  else lines.push('No está sonando música.');
+  if (!withImage) {
+    if (m?.playing && m.title) lines.push(`Está escuchando: ${m.artist ? m.artist + ' - ' : ''}${m.title}`);
+    else lines.push('No está sonando música.');
+  }
 
   if (state.notifications.length) {
     lines.push(`Notificaciones recientes de: ${[...new Set(state.notifications.map((n) => n.app))].join(', ')}`);
@@ -327,7 +339,9 @@ async function speak(reason, { force = false } = {}) {
   try {
     // Captura solo en check-ins o cuando lo tocás (las demás veces alcanza con el título).
     const image = (reason === 'checkin' || reason === 'poke') ? await safeScreenshot() : null;
-    const text = await brain.comment(buildContext(reason), image);
+    // dos versiones del contexto: con captura (hablá de la pantalla) y sin
+    // captura (por si la visión falla y brain.js comenta solo con texto)
+    const text = await brain.comment(buildContext(reason, !!image), image, buildContext(reason));
     debug('[brain]', reason, image ? '(con captura)' : '', '→', text);
     if (brain.lastVisionError) {
       // La captura falló y comentó solo con el texto: lo dejamos anotado.
