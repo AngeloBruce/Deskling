@@ -73,8 +73,19 @@ function Read-Notifications {
 }
 
 # Qué está sonando ahora (la sesión de medios activa de Windows).
+# Qué música leer: 1) la que está sonando, 2) Spotify, 3) la "actual" de Windows
+# (que a veces es un video pausado del navegador). Igual que media-control.ps1.
+function Pick-Session {
+  $all = @($mediaMgr.GetSessions())
+  $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
+  $s = $all | Where-Object { $_.GetPlaybackInfo().PlaybackStatus -eq $playing } | Select-Object -First 1
+  if (-not $s) { $s = $all | Where-Object { $_.SourceAppUserModelId -match 'spotify' } | Select-Object -First 1 }
+  if (-not $s) { $s = $mediaMgr.GetCurrentSession() }
+  $s
+}
+
 function Read-Media {
-  $s = $mediaMgr.GetCurrentSession()
+  $s = Pick-Session
   if (-not $s) { return @{ type = 'media'; playing = $false } }
   $p = Await ($s.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
   @{

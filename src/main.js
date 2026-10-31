@@ -21,7 +21,7 @@ const path = require('path');
 const guard = require('./guard');
 const { Brain } = require('./brain');
 const { Pomodoro } = require('./focus');
-const { startSensors, ocr } = require('./sensors');
+const { startSensors, startMediaControl, ocr } = require('./sensors');
 
 const ROOT = path.join(__dirname, '..');
 const CONFIG_PATH = path.join(ROOT, 'config.json');
@@ -72,6 +72,7 @@ let win = null;
 let tray = null;
 let brain = null;
 let sensors = null;
+let mediaCtl = null; // control de la música (ver musicCommand)
 let workTimer = null;
 
 /**
@@ -99,7 +100,7 @@ function mood(m) {
 
 // Medidas de la ventana. Clawd va en una esquina de abajo de la ventana
 // (derecha o izquierda según `state.side`) y el globito crece hacia el otro lado.
-const WIN_W = 260, WIN_H = 200;
+const WIN_W = 260, WIN_H = 228; // alto: lo justo para que entre el menú con los controles de música
 const CLAWD_W = 60, CLAWD_PAD = 8; // ancho del sprite y margen al borde (igual que style.css)
 
 function createWindow() {
@@ -188,6 +189,9 @@ function trayIcon() {
 const MENU_ACTIONS = {
   pause: () => togglePause(),
   focus: () => (pomodoro.active ? pomodoro.stop() : pomodoro.start()),
+  'music-toggle': () => musicCommand('toggle'),
+  'music-next': () => musicCommand('next'),
+  'music-prev': () => musicCommand('prev'),
   capture: () => setCapture(!config.screenCapture),
   poke: () => speak('poke', { force: true }),
   guardlog: () => shell.openPath(guardLogPath()),
@@ -220,6 +224,8 @@ function buildMenu() {
     { label: 'Ver mi pantalla (captura)', type: 'checkbox', checked: config.screenCapture, click: MENU_ACTIONS.capture },
     { label: '💬 Opiná ahora', click: MENU_ACTIONS.poke },
     { label: pomodoro.active ? '🍅 Terminar foco' : `🍅 Modo foco (${config.focus.workMinutes} min)`, click: MENU_ACTIONS.focus },
+    { label: '⏯ Música: play / pausa', click: MENU_ACTIONS['music-toggle'] },
+    { label: '⏭ Música: siguiente', click: MENU_ACTIONS['music-next'] },
     { type: 'separator' },
     { label: 'Ver registro de seguridad', click: MENU_ACTIONS.guardlog },
     { label: 'Abrir config.json', click: MENU_ACTIONS.config },
@@ -491,7 +497,14 @@ app.whenReady().then(() => {
   // (pausado, captura) para que muestre los interruptores bien.
   ipcMain.on('menu', () => {
     win.focus(); // así, si hacés clic en otra ventana, el menú se cierra (ver 'blur')
-    win.webContents.send('menu-open', { paused: state.paused, screenCapture: config.screenCapture, focusing: pomodoro.active });
+    const m = state.media;
+    win.webContents.send('menu-open', {
+      paused: state.paused,
+      screenCapture: config.screenCapture,
+      focusing: pomodoro.active,
+      // la canción (ya filtrada por el guard) para la fila de controles de música
+      music: m?.title ? { title: m.title, artist: m.artist, playing: !!m.playing } : null,
+    });
   });
   ipcMain.on('menu-action', (_e, name) => MENU_ACTIONS[name]?.());
 
@@ -504,6 +517,12 @@ app.whenReady().then(() => {
   ipcMain.on('mouse-capture', (_e, on) => win.setIgnoreMouseEvents(!on, { forward: true }));
   win.on('blur', () => win.webContents.send('menu-close'));
   ipcMain.on('poke', () => speak('poke', { force: true }));
+  // rueda del mouse sobre Clawd: para arriba = siguiente, para abajo = anterior
+  ipcMain.on('music-wheel', (_e, dir) => musicCommand(dir > 0 ? 'next' : 'prev'));
+
+  mediaCtl = startMediaControl();
+  mediaCtl.on('result', onMusicResult);
+  mediaCtl.on('error', (e) => debug('[musica] error:', e.message));
 
   // Arrastre propio: al agarrar guardamos dónde estaba la ventana y al mover
   // la corremos lo mismo que se movió el mouse.
@@ -685,4 +704,33 @@ function checkDistraction() {
     state.distractNagged = true;
     say(`📱 Llevas ${Math.round(elapsed / 60000)} min en ${name}. ¿Un ratito más o volvemos?`, { sound: config.sound, face: 'squint' });
   }
+}
+
+// =============================================================================
+// Control de la música (play/pausa, siguiente, anterior)
+// Se usa desde el menú y con la rueda del mouse sobre Clawd. La orden la
+// ejecuta media-control.ps1 sobre la app que esté sonando (Spotify, navegador…).
+// =============================================================================
+let lastMusicCmd = { cmd: '', wasPlaying: false };
+
+function musicCommand(cmd) {
+  lastMusicCmd = { cmd, wasPlaying: !!state.media?.playing };
+  debug('[musica]', cmd);
+  mediaCtl?.send(cmd);
+}
+
+/** Respuesta de media-control.ps1: avisamos con un globito cortito. */
+function onMusicResult({ cmd, ok, reason }) {
+  debug('[musica] resultado', cmd, ok, reason || '');
+  if (!ok) {
+    say(reason === 'sin-musica' ? '🤷 No hay música sonando para controlar.' : '😵 No pude controlar la música.', { seconds: 3 });
+    return;
+  }
+  const texts = {
+    toggle: lastMusicCmd.wasPlaying ? '⏸ Pausé la música.' : '▶ ¡Dale play!',
+    next: '⏭ Siguiente canción…',
+    prev: '⏮ La anterior…',
+  };
+  // Si pasás de canción, en un toque llega el comentario de la nueva (sensors 'media').
+  say(texts[cmd] || '🎵', { seconds: 3, face: 'happy' });
 }

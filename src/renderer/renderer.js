@@ -120,6 +120,11 @@ const ICONS = {
   tomato: ['..#.#..', '...#...', '.#####.', '#######', '#######', '#######', '.#####.'],
   stop:   ['.......', '.#####.', '.#####.', '.#####.', '.#####.', '.#####.', '.......'],
   cup:    ['.#.#...', '#.#....', '.......', '#####..', '#####.#', '######.', '.###...'],
+  // controles de música
+  play:   ['.#.....', '.##....', '.###...', '.####..', '.###...', '.##....', '.#.....'],
+  pause:  ['.......', '.##.##.', '.##.##.', '.##.##.', '.##.##.', '.##.##.', '.......'],
+  next:   ['#.....#', '##....#', '###...#', '####..#', '###...#', '##....#', '#.....#'],
+  prev:   ['#.....#', '#....##', '#...###', '#..####', '#...###', '#....##', '#.....#'],
   // notitas para cuando baila
   note:   ['...###.', '...#.#.', '...#...', '...#...', '.###...', '.###...', '.......'],
   notes:  ['..#####', '..#...#', '..#...#', '..#...#', '###.###', '###.###', '.......'],
@@ -141,12 +146,30 @@ menu.querySelectorAll('button').forEach((btn, i) => {
   btn.style.animationDelay = `${60 + i * 25}ms`; // aparecen en cascada
   btn.addEventListener('click', () => {
     window.clawd.menuAction(btn.dataset.action);
-    closeMenu();
+    // los de música (data-keep) dejan el menú abierto, para poder pasar varias canciones
+    if (btn.hasAttribute('data-keep')) {
+      if (btn.dataset.action === 'music-toggle') setPlaying(btn.dataset.icon !== 'pause');
+    } else {
+      closeMenu();
+    }
   });
 });
 
+/** Cambia el botón del medio entre ⏸ (está sonando) y ▶ (está pausada). */
+function setPlaying(playing) {
+  const btn = menu.querySelector('[data-action="music-toggle"]');
+  btn.dataset.icon = playing ? 'pause' : 'play';
+  setIcon(btn, btn.dataset.icon);
+}
+
 /** Main nos pide abrir el menú y nos dice el estado actual. */
-window.clawd.onMenuOpen(({ paused, screenCapture, focusing }) => {
+window.clawd.onMenuOpen(({ paused, screenCapture, focusing, music }) => {
+  const row = menu.querySelector('.music-row');
+  row.classList.toggle('hidden', !music);
+  if (music) {
+    row.querySelector('.song').textContent = music.artist ? `${music.title} · ${music.artist}` : music.title;
+    setPlaying(music.playing);
+  }
   const pause = menu.querySelector('[data-action="pause"]');
   pause.querySelector('span').textContent = paused ? 'Despertar a Clawd' : 'Dormir un rato';
   setIcon(pause, paused ? 'sun' : 'moon');
@@ -231,6 +254,17 @@ window.addEventListener('keydown', (e) => {
 
 // Doble clic sobre Clawd → que opine ya.
 clawdEl.addEventListener('dblclick', () => window.clawd.poke());
+
+// Rueda del mouse sobre Clawd → pasar de canción (arriba = siguiente, abajo = anterior).
+// Una por "ruedazo": ignoramos el resto del giro por 800 ms.
+let lastWheel = 0;
+clawdEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (Date.now() - lastWheel < 800) return;
+  lastWheel = Date.now();
+  window.clawd.musicWheel(e.deltaY < 0 ? 1 : -1);
+  setFace('happy', 800);
+}, { passive: false });
 
 // -----------------------------------------------------------------------------
 // Arrastrar vs. acariciar

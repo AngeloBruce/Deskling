@@ -332,6 +332,31 @@ body.menu-open #bubble { opacity: 0; pointer-events: none; }
 #menu button.danger:hover { background: rgba(226, 97, 74, .3); }
 #menu button.danger i svg { fill: #e2614a; }
 
+/* Fila de música: tres botoncitos ⏮ ⏯ ⏭ y el nombre de la canción */
+#menu .music-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 2px 3px;
+  padding: 2px;
+  border-radius: 3px;
+  background: rgba(217, 119, 87, .1);
+}
+#menu .music-row.hidden { display: none; }
+#menu .music-row button { width: auto; padding: 3px 4px; flex: none; }
+#menu .music-row button i { width: 12px; height: 12px; }
+#menu .music-row .song {
+  flex: 1;
+  min-width: 0;
+  padding-left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #c9b3a6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 #menu hr { height: 2px; margin: 2px 4px; border: 0; background: rgba(217, 119, 87, .3); }
 
 /* Interruptor pixel para "Ver pantalla": cajita con un cuadradito que se corre */

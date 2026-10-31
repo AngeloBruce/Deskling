@@ -89,6 +89,13 @@
   -->
   <div id="menu" class="hidden" role="menu">
     <div class="menu-title">¿qué hacemos?</div>
+    <!-- Controles de música: solo aparecen si hay algo sonando (o pausado) -->
+    <div class="music-row hidden">
+      <button data-action="music-prev" data-icon="prev" data-keep title="Anterior"><i></i></button>
+      <button data-action="music-toggle" data-icon="pause" data-keep title="Play / pausa"><i></i></button>
+      <button data-action="music-next" data-icon="next" data-keep title="Siguiente"><i></i></button>
+      <span class="song"></span>
+    </div>
     <button data-action="pause" data-icon="moon" role="menuitem"><i></i><span>Dormir un rato</span></button>
     <button data-action="capture" data-icon="eye" role="menuitemcheckbox"><i></i><span>Ver pantalla</span><b class="switch"></b></button>
     <button data-action="poke" data-icon="chat" role="menuitem"><i></i><span>Opiná ahora</span></button>

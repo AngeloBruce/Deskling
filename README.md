@@ -60,6 +60,12 @@ Pruebas: `npm test`.
 - `distractions`: palabras que marcan una app como distracción (`keywords`). En foco avisa a los
   `focusSeconds` segundos; fuera del foco, a los `minutes` minutos.
 
+## Control de música
+
+- Clic derecho → arriba del menú aparece la canción con ⏮ ⏯ ⏭ (el menú queda abierto para pasar varias).
+- Rueda del mouse sobre Clawd: para arriba = siguiente, para abajo = anterior.
+- Controla la app que está sonando; si no suena nada, Spotify (`src/sensors/media-control.ps1`).
+
 ## Modo foco
 
 Clic derecho → **Modo foco**. Mientras dura (25 min por defecto):
