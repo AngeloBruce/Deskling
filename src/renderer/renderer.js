@@ -116,6 +116,9 @@ const ICONS = {
   shield: ['.#####.', '#######', '###.###', '##...##', '.#####.', '..###..', '...#...'],
   gear:   ['..#.#..', '.#####.', '##...##', '.#...#.', '##...##', '.#####.', '..#.#..'],
   bye:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
+  // notitas para cuando baila
+  note:   ['...###.', '...#.#.', '...#...', '...#...', '.###...', '.###...', '.......'],
+  notes:  ['..#####', '..#...#', '..#...#', '..#...#', '###.###', '###.###', '.......'],
 };
 
 /** Convierte un dibujo de ICONS en un <svg> de rectángulos. */
@@ -275,7 +278,28 @@ function maybeDance() {
   if (clawdEl.className === 'idle') {
     setMood('dancing');
     setFace('happy', 6000);
-    setTimeout(() => { if (clawdEl.className === 'dancing') setMood(baseMood); }, 6000);
+    // una notita por "tiempo" (cada medio segundo, igual que el bop de la cabeza)
+    const notes = setInterval(() => {
+      if (clawdEl.className !== 'dancing') return clearInterval(notes);
+      spawnNote();
+    }, 500);
+    setTimeout(() => {
+      clearInterval(notes);
+      if (clawdEl.className === 'dancing') setMood(baseMood);
+    }, 6000);
   }
   danceTimer = setTimeout(maybeDance, 25000 + Math.random() * 35000);
+}
+
+/** Una notita musical que sale de la cabeza de Clawd y sube flotando. */
+let noteSide = 1;
+function spawnNote() {
+  const el = document.createElement('i');
+  el.className = 'note' + (Math.random() < 0.35 ? ' light' : ''); // algunas blanquitas
+  el.innerHTML = pixelIcon(Math.random() < 0.5 ? 'note' : 'notes');
+  noteSide = -noteSide; // una a la izquierda, otra a la derecha
+  el.style.left = `${noteSide > 0 ? 38 + Math.random() * 10 : 6 + Math.random() * 10}px`;
+  el.style.setProperty('--dx', `${noteSide * (4 + Math.random() * 6)}px`);
+  el.addEventListener('animationend', () => el.remove());
+  clawdEl.appendChild(el);
 }

@@ -170,18 +170,46 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
   100% { transform: scale(1, 1); }
 }
 
-/* ---------- Baile (solo con Spotify): balanceo suave de lado a lado ---------- */
-#clawd.dancing svg { animation: sway .9s ease-in-out infinite; transform-origin: 50% 100%; }
-/* las patitas se turnan, como marcando el ritmo */
-#clawd.dancing .legs rect:nth-child(odd)  { animation: step .45s steps(1) infinite; }
-#clawd.dancing .legs rect:nth-child(even) { animation: step .45s steps(1) infinite .225s; }
-@keyframes sway {
-  0%, 100% { transform: rotate(-5deg) translateY(0); }
-  25%      { transform: rotate(0deg) translateY(-2px); }
-  50%      { transform: rotate(5deg) translateY(0); }
-  75%      { transform: rotate(0deg) translateY(-2px); }
+/* ---------- Baile (solo con Spotify): cabeceo al ritmo ---------- */
+/* Lo que se mueve es la "cabeza" (cuerpo + cara); las patitas quedan casi quietas.
+   Todos los grupos menos .legs usan la misma animación y el mismo punto de giro
+   (el centro de abajo del cuerpo, x=16 y=18 de la grilla), así se mueven juntos.
+   Un ciclo = 2 tiempos: inclina a un lado y baja (¡bop!), inclina al otro y baja. */
+#clawd.dancing svg > g:not(.legs) {
+  transform-box: view-box;
+  transform-origin: 16px 18px;
+  animation: headbob 1s ease-in-out infinite;
 }
-@keyframes step { 50% { transform: translateY(-1px); } }
+@keyframes headbob {
+  0%, 100% { transform: rotate(-7deg) translateY(-1px); }
+  22%      { transform: rotate(-3deg) translateY(1px); }   /* bop */
+  50%      { transform: rotate(7deg) translateY(-1px); }
+  72%      { transform: rotate(3deg) translateY(1px); }    /* bop */
+}
+/* patitas: un golpecito chiquito con cada bop, nada más */
+#clawd.dancing .legs rect:nth-child(odd)  { animation: tap 1s steps(1) infinite .15s; }
+#clawd.dancing .legs rect:nth-child(even) { animation: tap 1s steps(1) infinite .65s; }
+@keyframes tap { 0%, 20% { transform: translateY(-.5px); } 21%, 100% { transform: none; } }
+
+/* Notitas musicales: renderer.js crea un .note por tiempo mientras baila;
+   cada una sube haciendo una ondita y se desvanece. */
+#clawd .note {
+  position: absolute;
+  top: 2px;
+  width: 11px;
+  height: 11px;
+  pointer-events: none;
+  animation: note-up 1.8s ease-out forwards;
+}
+#clawd .note svg { width: 100%; height: 100%; fill: var(--clawd); }
+#clawd .note.light svg { fill: var(--bubble-fg); }
+@keyframes note-up {
+  0%   { transform: translate(0, 0) scale(.6); opacity: 0; }
+  15%  { opacity: 1; }
+  40%  { transform: translate(var(--dx), -16px) scale(1) rotate(-10deg); }
+  70%  { transform: translate(calc(var(--dx) * -.5), -28px) rotate(10deg); opacity: 1; }
+  100% { transform: translate(var(--dx), -40px) rotate(0deg); opacity: 0; }
+}
 
 /* ---------- Despedida (al salir) ---------- */
 /* 0–55 %: saluda con el bracito derecho · 55–70 %: saltito · 70–100 %: se encoge */
