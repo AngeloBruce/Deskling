@@ -37,6 +37,49 @@ const PHONE_RE = /(?:\+\d{1,3}[ -]?)?(?:\(\d{2,4}\)[ -]?)?\d{3,4}[ -]\d{3,4}(?:[
 // si hay una palabra clave cerca (si no, "Pedido 482913" se tacharía sin motivo).
 const CODE_RE = /\b\d{4,8}\b|\b[A-Z0-9]{3}-[A-Z0-9]{3}\b/g;
 
+// --- Capturas de pantalla: reglas MÁS estrictas ---
+// Una captura no se puede "tachar" (la IA ve la imagen entera y lee los números
+// aunque el OCR los lea mal), así que ante la duda NO se manda. Por eso acá
+// alcanza con palabras sueltas como "código" o "emparejar", que en un texto
+// normal serían demasiado.
+// (Caso real: la ventana de Enlace Móvil mostraba "Confirma que este código…
+// 4 0 7 3 9 1" y el OCR leyó "4 o 7 3 9 l": ni la palabra ni el número
+// coincidían con las reglas de texto, y la IA repitió el código.)
+const CAPTURE_KEYWORDS = [
+  'codigo', 'code', 'emparejar', 'emparejamiento', 'vincular', 'pairing', 'pair device',
+  'verificacion', 'verification', 'verify', 'autenticacion', 'authenticator', 'autenticador',
+  'iniciar sesion', 'sign in', 'log in', 'one time', 'pin',
+];
+// Dígitos sueltos en fila, típicos de las cajitas de un código: "4 0 7 3 9 1".
+// Aceptamos o/O/l/I como dígitos porque el OCR los confunde (0→o, 1→l).
+const SPACED_DIGITS_RE = /(?:^|\s)((?:[0-9oOlI][\s|]+){3,7}[0-9oOlI])(?=\s|$)/g;
+
+/**
+ * ¿Se puede mandar esta captura? Recibe el texto que leyó el OCR.
+ * @returns {{block: boolean, reasons: string[]}}
+ */
+function scanCapture(text) {
+  const base = scan(text);
+  const reasons = [...base.keywords, ...base.reasons.filter((r) => r !== 'email' && r !== 'telefono')];
+  const norm = normalize(text || '');
+  for (const k of CAPTURE_KEYWORDS) {
+    if (new RegExp(`(^|[^a-z])${k}([^a-z]|$)`).test(norm)) reasons.push(k);
+  }
+  for (const m of String(text || '').matchAll(SPACED_DIGITS_RE)) {
+    // al menos 3 dígitos de verdad, para no confundir "l o l o" con un código
+    if ((m[1].match(/[0-9]/g) || []).length >= 3) reasons.push('digitos-sueltos');
+  }
+  return { block: base.sensitive || reasons.length > 0, reasons: [...new Set(reasons)] };
+}
+
+/**
+ * Última barrera para lo que DICE Clawd cuando vio una captura: tacha
+ * cualquier número de 4 a 8 cifras (un código que se haya colado igual).
+ */
+function redactNumbers(text) {
+  return String(text || '').replace(/\d(?:[\s-]?\d){3,7}/g, '[…]');
+}
+
 /** Saca acentos y pasa a minúscula: "Contraseña" → "contrasena". */
 function normalize(text) {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -109,4 +152,11 @@ function check(source, text) {
   return result;
 }
 
-module.exports = { scan, check, setLogFile, luhn };
+/** scanCapture() + registrar en el log qué hizo que no se mande la captura. */
+function checkCapture(text) {
+  const result = scanCapture(text);
+  if (result.block) log('captura', { sensitive: true, keywords: [], reasons: result.reasons });
+  return result;
+}
+
+module.exports = { scan, check, scanCapture, checkCapture, redactNumbers, normalize, setLogFile, luhn };

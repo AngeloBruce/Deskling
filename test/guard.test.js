@@ -53,3 +53,27 @@ test('texto normal pasa intacto', () => {
 test('números sin palabra clave no se tachan', () => {
   assert.strictEqual(scan('Pedido 482913 enviado').clean, 'Pedido 482913 enviado');
 });
+
+// --- Capturas: reglas estrictas ---
+const { scanCapture, redactNumbers } = require('../src/guard');
+
+test('captura: el caso real de Enlace Móvil se bloquea', () => {
+  // texto que leyó el OCR de la pantalla (los números salieron como "4 o 7 3 9 l")
+  const ocr = 'Enlace Móvil ¿Quieres emparejar el dispositivo? Confirma que este código se muestra en tu teléfono. 4 o 7 3 9 l';
+  assert.equal(scanCapture(ocr).block, true);
+});
+
+test('captura: dígitos en cajitas sin ninguna palabra clave se bloquean', () => {
+  assert.equal(scanCapture('Ingresá esto en tu teléfono 4 9 1 7 2 6').block, true);
+});
+
+test('captura: una pantalla normal de trabajo se manda', () => {
+  const ocr = 'main.js src renderer style.css function speak(reason) const text = await brain.comment Terminal npm test pass 11';
+  assert.equal(scanCapture(ocr).block, false);
+});
+
+test('respuesta: se tachan los números de 4+ cifras', () => {
+  assert.equal(redactNumbers('Ese código 407391 está expirando'), 'Ese código […] está expirando');
+  assert.equal(redactNumbers('Ese 4 0 7 3 9 1 ya venció'), 'Ese […] ya venció');
+  assert.equal(redactNumbers('Llevás 25 min, crack'), 'Llevás 25 min, crack');
+});

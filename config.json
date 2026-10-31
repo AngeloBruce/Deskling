@@ -49,7 +49,14 @@
     "login",
     "incognito",
     "inprivate",
-    "privada"
+    "privada",
+    "enlace móvil",
+    "vínculo móvil",
+    "phone link",
+    "autenticador",
+    "authenticator",
+    "google authenticator",
+    "microsoft authenticator"
   ],
   "ignoredNotificationApps": [
     "Seguridad de Windows",

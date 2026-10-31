@@ -257,8 +257,9 @@ function guardLogPath() {
 
 /** ¿La ventana activa es de una app privada (banco, gestor de contraseñas, login…)? */
 function isPrivate(proc, title) {
-  const hay = `${proc} ${title}`.toLowerCase();
-  return config.privateApps.some((p) => hay.includes(p.toLowerCase()));
+  // sin acentos de los dos lados: "Enlace Móvil" coincide con "enlace movil"
+  const hay = guard.normalize(`${proc} ${title}`);
+  return config.privateApps.some((p) => hay.includes(guard.normalize(p)));
 }
 
 /**
@@ -279,8 +280,8 @@ async function safeScreenshot() {
     const text = await ocr(tmp);
     fs.rmSync(tmp, { force: true });
     if (text === null) return null; // si el OCR falla, por las dudas no mandamos nada
-    const check = guard.check('captura', text);
-    if (check.sensitive) return null;
+    // reglas estrictas: ante cualquier "código", "emparejar", dígitos en cajitas… no se manda
+    if (guard.checkCapture(text).block) return null;
     return `data:image/jpeg;base64,${img.toJPEG(70).toString('base64')}`;
   } catch (e) {
     console.error('captura:', e.message);
@@ -309,8 +310,11 @@ function buildContext(reason, withImage = false) {
   lines.push(reasons[reason] || reasons.checkin);
   if (withImage) {
     lines.push('Tenés una CAPTURA de su pantalla adjunta: comentá algo CONCRETO que se vea en ella '
-      + '(el código, la página, el chat, un error, lo que esté haciendo). Esta vez NO hables de la música, '
+      + '(el programa que escribe, la página, un error, lo que esté haciendo). Esta vez NO hables de la música, '
       + 'y usá un emoji que tenga que ver con lo que ves.');
+    // segunda capa de seguridad (la primera es no mandar la captura, ver safeScreenshot)
+    lines.push('MUY IMPORTANTE: NUNCA repitas números, códigos, contraseñas, emails, teléfonos ni nombres '
+      + 'de personas que aparezcan en la captura. Si ves algo así, ignoralo y comentá otra cosa.');
   }
 
   const w = state.window;
@@ -355,7 +359,9 @@ async function speak(reason, { force = false } = {}) {
     const image = (reason === 'checkin' || reason === 'poke') ? await safeScreenshot() : null;
     // dos versiones del contexto: con captura (hablá de la pantalla) y sin
     // captura (por si la visión falla y brain.js comenta solo con texto)
-    const text = await brain.comment(buildContext(reason, !!image), image, buildContext(reason));
+    const raw = await brain.comment(buildContext(reason, !!image), image, buildContext(reason));
+    // tercera capa: si vio una captura, tachamos cualquier número de 4+ cifras que diga
+    const text = image ? guard.redactNumbers(raw) : raw;
     debug('[brain]', reason, image ? '(con captura)' : '', '→', text);
     if (brain.lastVisionError) {
       // La captura falló y comentó solo con el texto: lo dejamos anotado.

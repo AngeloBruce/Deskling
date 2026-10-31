@@ -369,11 +369,13 @@ window.clawd.onMusic(({ spotifyPlaying: playing }) => {
   else if (clawdEl.className === 'dancing') setMood(baseMood);
 });
 
+const DANCE_MS = 7000; // cuánto dura cada bailecito
+
 function maybeDance() {
   if (!spotifyPlaying) return;
   if (clawdEl.className === 'idle') {
     setMood('dancing');
-    setFace('happy', 6000);
+    setFace('happy', DANCE_MS);
     // una notita por "tiempo" (cada medio segundo, igual que el bop de la cabeza)
     const notes = setInterval(() => {
       if (clawdEl.className !== 'dancing') return clearInterval(notes);
@@ -382,7 +384,7 @@ function maybeDance() {
     setTimeout(() => {
       clearInterval(notes);
       if (clawdEl.className === 'dancing') setMood(baseMood);
-    }, 6000);
+    }, DANCE_MS);
   }
   danceTimer = setTimeout(maybeDance, 25000 + Math.random() * 35000);
 }
