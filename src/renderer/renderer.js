@@ -62,6 +62,7 @@ function beep() {
  *   sound   → hace "pip"
  *   seconds → cuánto queda visible
  *   face    → forzar una cara: 'happy', 'squint' o 'angry'
+ *   card    → tarjeta de varias líneas (el resumen del día), sin cortar el texto
  */
 window.clawd.onSay((msg) => {
   const span = document.createElement('span'); // ver #bubble .text en style.css
@@ -69,6 +70,7 @@ window.clawd.onSay((msg) => {
   span.textContent = msg.text;
   bubble.replaceChildren(span);
   bubble.classList.toggle('alert', !!msg.alert);
+  bubble.classList.toggle('card', !!msg.card);
   bubble.classList.remove('hidden');
   setMood(msg.alert ? 'excited' : 'talking');
   // Cara: la que pida main (msg.face) o, si no, notificación → > <  ·  comentario → ^ ^
@@ -116,6 +118,7 @@ const ICONS = {
   shield: ['.#####.', '#######', '###.###', '##...##', '.#####.', '..###..', '...#...'],
   gear:   ['..#.#..', '.#####.', '##...##', '.#...#.', '##...##', '.#####.', '..#.#..'],
   bye:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
+  chart:  ['......#', '......#', '...#..#', '...#..#', '#..#..#', '#..#..#', '#######'], // resumen del día
   // modo foco: tomatito (pomodoro) y tacita (descanso)
   tomato: ['..#.#..', '...#...', '.#####.', '#######', '#######', '#######', '.#####.'],
   stop:   ['.......', '.#####.', '.#####.', '.#####.', '.#####.', '.#####.', '.......'],

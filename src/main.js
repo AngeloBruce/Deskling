@@ -13,7 +13,7 @@
 //      respetando los tiempos de espera para no ser pesado ni gastar el plan gratis.
 // =============================================================================
 
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, desktopCapturer, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, desktopCapturer, nativeImage, shell, powerMonitor } = require('electron');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
@@ -21,6 +21,7 @@ const path = require('path');
 const guard = require('./guard');
 const { Brain } = require('./brain');
 const { Pomodoro } = require('./focus');
+const { DayStats } = require('./stats');
 const { startSensors, startMediaControl, ocr } = require('./sensors');
 
 const ROOT = path.join(__dirname, '..');
@@ -100,7 +101,7 @@ function mood(m) {
 
 // Medidas de la ventana. Clawd va en una esquina de abajo de la ventana
 // (derecha o izquierda según `state.side`) y el globito crece hacia el otro lado.
-const WIN_W = 260, WIN_H = 228; // alto: lo justo para que entre el menú con los controles de música
+const WIN_W = 260, WIN_H = 250; // alto: lo justo para que entre el menú (y la tarjeta del resumen)
 const CLAWD_W = 60, CLAWD_PAD = 8; // ancho del sprite y margen al borde (igual que style.css)
 
 function createWindow() {
@@ -189,6 +190,7 @@ function trayIcon() {
 const MENU_ACTIONS = {
   pause: () => togglePause(),
   focus: () => (pomodoro.active ? pomodoro.stop() : pomodoro.start()),
+  summary: () => showSummary(true),
   'music-toggle': () => musicCommand('toggle'),
   'music-next': () => musicCommand('next'),
   'music-prev': () => musicCommand('prev'),
@@ -226,6 +228,7 @@ function buildMenu() {
     { label: pomodoro.active ? '🍅 Terminar foco' : `🍅 Modo foco (${config.focus.workMinutes} min)`, click: MENU_ACTIONS.focus },
     { label: '⏯ Música: play / pausa', click: MENU_ACTIONS['music-toggle'] },
     { label: '⏭ Música: siguiente', click: MENU_ACTIONS['music-next'] },
+    { label: '📊 Terminé por hoy', click: MENU_ACTIONS.summary },
     { type: 'separator' },
     { label: 'Ver registro de seguridad', click: MENU_ACTIONS.guardlog },
     { label: 'Abrir config.json', click: MENU_ACTIONS.config },
@@ -435,6 +438,7 @@ function wireSensors() {
     const track = `${m.artist}|${m.title}`;
     if (m.playing && m.title && track !== state.lastTrack) {
       state.lastTrack = track;
+      stats.song(state.media.artist);
       speak('music');
     }
   });
@@ -442,6 +446,7 @@ function wireSensors() {
   // Llegó una notificación de Windows (se ve aunque esté "No molestar").
   sensors.on('notification', (n) => {
     if (config.ignoredNotificationApps.includes(n.app)) return;
+    stats.notification();
     const title = guard.check(`noti:${n.app}`, n.title || '');
     const body = guard.check(`noti:${n.app}`, n.body || '');
     const sensitive = title.sensitive || body.sensitive;
@@ -556,6 +561,10 @@ app.whenReady().then(() => {
 
   // ¿Te fuiste a YouTube/TikTok…? (ver checkDistraction)
   setInterval(checkDistraction, 10 * 1000);
+
+  // Resumen del día: contar el tiempo en cada app y ver si ya toca mostrarlo.
+  setInterval(trackDay, 10 * 1000);
+  setInterval(() => { stats.save(); checkSummaryTime(); }, 60 * 1000);
 });
 
 /**
@@ -578,7 +587,7 @@ function wellnessTip() {
   say(tips[i], { sound: config.sound });
 }
 
-app.on('before-quit', () => sensors?.stop());
+app.on('before-quit', () => { sensors?.stop(); stats.save(); });
 app.on('window-all-closed', () => app.quit());
 
 // ---------------------------------------------------------------------------
@@ -617,6 +626,7 @@ function startClaudeServer() {
 /** Llega un evento de Claude Code. */
 function onClaudeEvent({ event, message, cwd }) {
   debug('[claude]', event, message);
+  if (event === 'Stop') stats.claude();
   if (state.paused) return;
   // Si ya estás mirando a Claude, no hace falta avisarte.
   if (state.window && isClaudeApp(state.window.process)) return;
@@ -663,6 +673,7 @@ function onFocusPhase({ phase, endsAt, cycle, prev }) {
     if (prev === 'off') say(`🍅 ¡Modo foco! ${f.workMinutes} min. Me quedo calladito y te guardo las notis.`, { face: 'happy' });
     else say(`💪 ¡Volvemos! Otros ${f.workMinutes} min de foco.`, { sound: config.sound, face: 'happy' });
   } else if (phase === 'break' || phase === 'longBreak') {
+    stats.pomodoro();
     const mins = phase === 'longBreak' ? f.longBreakMinutes : f.breakMinutes;
     const extra = phase === 'longBreak' ? ` ¡Ya van ${cycle} 🍅, te ganaste uno largo!` : '';
     say(`⏰ ¡Listo el foco! Descanso de ${mins} min.${extra} ${randomTip()}`, { alert: true, sound: config.sound, face: 'happy', seconds: 15 });
@@ -739,4 +750,61 @@ function onMusicResult({ cmd, ok, reason }) {
   };
   // Si pasás de canción, en un toque llega el comentario de la nueva (sensors 'media').
   say(texts[cmd] || '🎵', { seconds: 3, face: 'happy' });
+}
+
+// =============================================================================
+// Resumen del día — el contador está en stats.js (todo queda en tu PC).
+// Aparece solo una vez por día:
+//   - cuando tocás "Terminé por hoy" en el menú (ese lo podés pedir siempre),
+//   - a la hora de config.summary.hour (ej: 23 h), o
+//   - si después de config.summary.afterHour (ej: 18 h) dejás la compu sola
+//     un rato (idleMinutes): queda en el globito para cuando vuelvas.
+// A la IA solo le pasamos los números y nombres de apps, para que te diga
+// una frase de cierre. Si la IA falla, la tarjeta sale igual sin la frase.
+// =============================================================================
+const stats = new DayStats(path.join(ROOT, 'logs'));
+
+/** Cada 10 s: sumá esos 10 s a la app activa (si estás frente a la compu). */
+function trackDay() {
+  const w = state.window;
+  if (!w || powerMonitor.getSystemIdleTime() > 120) return; // 2 min sin tocar nada = no estás
+  stats.addApp(w.private ? 'privada' : w.process, 10);
+  if (state.distractSince) stats.distract(10);
+}
+
+/** Cada minuto: ¿ya es hora del resumen automático? */
+function checkSummaryTime() {
+  const c = config.summary;
+  if (!c?.enabled || stats.roll().summaryShown || state.paused) return;
+  if (stats.totalSec() < c.minActiveMinutes * 60) return; // día casi sin uso: no hay mucho que contar
+  const hour = new Date().getHours();
+  const idle = powerMonitor.getSystemIdleTime() / 60;
+  if (hour >= c.hour || (hour >= c.afterHour && idle >= c.idleMinutes)) showSummary(false);
+}
+
+async function showSummary(manual) {
+  const d = stats.roll();
+  d.summaryShown = true;
+  stats.save();
+  const lines = stats.lines();
+  // tarjeta larga: se queda hasta que hagas clic (o mucho rato si te fuiste)
+  const show = (extra) => say([...lines, extra].filter(Boolean).join('\n'), { card: true, face: 'happy', seconds: manual ? 40 : 600, sound: config.sound });
+
+  if (!brain || state.busy) return show('');
+  state.busy = true;
+  mood('thinking');
+  try {
+    const context = 'Es el final del día. Este es el resumen de lo que hizo hoy en la compu:\n'
+      + lines.join('\n')
+      + '\nDecile UNA frase corta de cierre (máx 15 palabras): felicitalo por algo concreto del resumen '
+      + 'o dale un consejo para mañana, y despedite hasta mañana. No repitas los números, '
+      + 'no hables de la canción que suena y no copies tus comentarios anteriores.';
+    const phrase = await brain.comment(context);
+    show(phrase ? `💬 ${phrase}` : '');
+  } catch (e) {
+    debug('[resumen] sin frase de la IA:', e.message);
+    show('🌙 ¡Buen trabajo hoy! Nos vemos mañana.');
+  } finally {
+    state.busy = false;
+  }
 }

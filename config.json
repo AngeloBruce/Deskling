@@ -116,5 +116,12 @@
     ],
     "focusSeconds": 45,
     "minutes": 20
+  },
+  "summary": {
+    "enabled": true,
+    "hour": 23,
+    "afterHour": 18,
+    "idleMinutes": 30,
+    "minActiveMinutes": 30
   }
 }

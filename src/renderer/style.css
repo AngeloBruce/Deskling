@@ -59,6 +59,9 @@ body[data-side="left"] #bubble { transform-origin: 0 100%; }
 /* el texto va en un span aparte: máximo 4 líneas y si es más largo termina en "…"
    (el overflow va en el span para no cortar la colita del globito) */
 #bubble .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+/* resumen del día: varias líneas, sin cortar, letra un poco más chica */
+#bubble.card { font-size: 11px; font-weight: 500; line-height: 1.35; }
+#bubble.card .text { display: block; white-space: pre-line; }
 #bubble.hidden { opacity: 0; transform: translateY(4px) scale(.9); pointer-events: none; }
 
 /* Colita que apunta a la cabeza de Clawd (centro de Clawd = 30px desde su borde).

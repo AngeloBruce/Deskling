@@ -76,6 +76,17 @@ Clic derecho → **Modo foco**. Mientras dura (25 min por defecto):
 
 Al lado de Clawd aparece un contador (🍅 en foco, ☕ en el descanso). Cada 4 focos toca descanso largo.
 
+## Resumen del día
+
+Clawd cuenta cuánto tiempo pasás en cada app, las canciones, los pomodoros, las veces que terminó Claude Code y las notificaciones. Todo se guarda en tu PC (`logs/stats-AAAA-MM-DD.json`) y solo cuenta el nombre de la app, nunca el título de la ventana.
+
+El resumen aparece una vez por día:
+- cuando tocás **"Terminé por hoy"** en el menú (ese lo podés pedir siempre),
+- a las 23 h (`summary.hour`),
+- o si después de las 18 h (`summary.afterHour`) dejás la compu sola 30 min (`summary.idleMinutes`). En ese caso queda esperándote en el globito.
+
+Los días con menos de 30 min de uso (`summary.minActiveMinutes`) no tienen resumen automático. A la IA solo le llegan los números y los nombres de las apps, para que agregue una frase de cierre.
+
 ## Avisos de Claude Code
 
 `hooks/clawd-hook.js` se registra como hook `Stop` y `Notification` en `~/.claude/settings.json`:
