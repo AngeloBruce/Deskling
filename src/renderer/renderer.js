@@ -227,6 +227,31 @@ window.addEventListener('mouseup', () => {
   press = null;
 });
 
+// -----------------------------------------------------------------------------
+// Clics que atraviesan la parte transparente
+// La ventana deja pasar el mouse a la app de abajo, salvo cuando está encima
+// de algo nuestro. Acá decidimos qué es "nuestro" y se lo decimos a main.
+// -----------------------------------------------------------------------------
+let capturing = false;
+
+function isOverUs(target) {
+  if (press) return true; // arrastrando: no soltamos el mouse a mitad de camino
+  if (clawdEl.contains(target)) return true;
+  if (!bubble.classList.contains('hidden') && bubble.contains(target)) return true;
+  if (!menu.classList.contains('hidden') && menu.contains(target)) return true;
+  return false;
+}
+
+function updateCapture(on) {
+  if (on === capturing) return; // solo avisamos cuando cambia
+  capturing = on;
+  window.clawd.setMouseCapture(on);
+}
+
+window.addEventListener('mousemove', (e) => updateCapture(isOverUs(e.target)));
+// el mouse se fue de la ventana → que todo vuelva a atravesar
+document.addEventListener('mouseleave', () => { if (!press) updateCapture(false); });
+
 /** Caricia: Clawd se aplasta y rebota como gelatina, cierra los ojitos y hace "blop". */
 function boop() {
   clawdEl.classList.remove('boop');

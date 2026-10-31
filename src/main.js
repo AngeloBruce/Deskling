@@ -480,6 +480,14 @@ app.whenReady().then(() => {
     win.webContents.send('menu-open', { paused: state.paused, screenCapture: config.screenCapture });
   });
   ipcMain.on('menu-action', (_e, name) => MENU_ACTIONS[name]?.());
+
+  // Clics que atraviesan: la ventana es más grande que Clawd (para que entre el
+  // globito) y la parte transparente tapaba botones de otras apps. Así que por
+  // defecto la ventana IGNORA el mouse (los clics pasan a la app de abajo) y
+  // renderer.js nos avisa cuando el mouse está sobre Clawd, el globito o el menú.
+  // `forward: true` hace que igual nos lleguen los movimientos del mouse.
+  win.setIgnoreMouseEvents(true, { forward: true });
+  ipcMain.on('mouse-capture', (_e, on) => win.setIgnoreMouseEvents(!on, { forward: true }));
   win.on('blur', () => win.webContents.send('menu-close'));
   ipcMain.on('poke', () => speak('poke', { force: true }));
 
