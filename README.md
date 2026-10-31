@@ -20,6 +20,18 @@ Usa IA gratis (Groq o NVIDIA) y filtra contraseñas, códigos y otros datos sens
    npm start
    ```
 
+### Instalarlo como programa (.exe)
+
+```bash
+npm run dist
+```
+
+Genera `dist/Clawd Buddy Setup 0.1.0.exe`. Al abrirlo, se instala solo para tu usuario (sin pedir administrador) en `%LOCALAPPDATA%\Programs\clawd-buddy`, con accesos directos en el escritorio y en el menú Inicio. Se desinstala desde Configuración → Aplicaciones.
+
+- **Tus datos van aparte**, en `%APPDATA%\Clawd Buddy`: ahí van `config.json`, los logs y el `.env` con tu key. Copiá ahí tu `.env` antes de abrirlo por primera vez. La key nunca se mete adentro del instalador.
+- **Aviso de Windows SmartScreen:** como el `.exe` no está firmado (un certificado cuesta plata), Windows puede mostrar "Windows protegió su PC". Tocá *Más información → Ejecutar de todas formas*.
+- **Si `npm run dist` falla con "Cannot create symbolic link"**: es un problema conocido de electron-builder en Windows sin permisos de administrador. Activá el *Modo de programador* de Windows, o extraé a mano `winCodeSign` en `%LOCALAPPDATA%\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0` sin la carpeta `darwin`.
+
 - **Doble clic** en Clawd → opina ahora.
 - **Clic derecho** en Clawd (o en el ícono de la bandeja) → pausar, activar la captura de pantalla, ver el registro de seguridad, salir.
 - **Arrastrarlo** para moverlo.
@@ -78,7 +90,7 @@ Al lado de Clawd aparece un contador (🍅 en foco, ☕ en el descanso). Cada 4 
 
 ## Arrancar con Windows
 
-Clawd se abre solo cuando iniciás sesión en Windows. Se apaga y se prende desde el menú → **"Abrir al iniciar"** (o `autoStart` en `config.json`). Lo que hace es escribir una entrada `ClawdBuddy` en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, que es solo de tu usuario y no necesita permisos de administrador. Para verla o borrarla a mano: Administrador de tareas → Aplicaciones de arranque.
+Clawd se abre solo cuando iniciás sesión en Windows (la versión instalada; con `npm start` no se toca el arranque, salvo que uses el interruptor). Se apaga y se prende desde el menú → **"Abrir al iniciar"** (o `autoStart` en `config.json`). Lo que hace es escribir una entrada `ClawdBuddy` en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, que es solo de tu usuario y no necesita permisos de administrador. Para verla o borrarla a mano: Administrador de tareas → Aplicaciones de arranque.
 
 ## Resumen del día
 

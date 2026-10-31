@@ -1,14 +1,46 @@
 {
   "name": "clawd-buddy",
+  "productName": "Clawd Buddy",
   "version": "0.1.0",
   "description": "Compañero de escritorio: Clawd mira tu música, tu trabajo y tus notificaciones y opina.",
   "main": "src/main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "dist": "node build/make-icon.js && electron-builder --win"
   },
   "devDependencies": {
-    "electron": "^33.2.0"
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "author": "Angelo",
+  "build": {
+    "appId": "com.angelo.clawdbuddy",
+    "productName": "Clawd Buddy",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "config.json",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "src/sensors/*.ps1"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Clawd Buddy",
+      "runAfterFinish": true
+    }
   }
 }

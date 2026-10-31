@@ -21,6 +21,9 @@ const path = require('path');
 const readline = require('readline');
 
 const PS_ARGS = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File'];
+// Instalado, el código va empaquetado en app.asar y PowerShell no puede leer
+// adentro: por eso los .ps1 se copian aparte, a app.asar.unpacked (ver package.json).
+const DIR = __dirname.replace('app.asar', 'app.asar.unpacked');
 
 function startSensors() {
   const events = new EventEmitter();
@@ -30,7 +33,7 @@ function startSensors() {
   // Arranca el script. Cada línea que imprime es un JSON = un evento.
   // Si el script se cae, lo reiniciamos a los 3 segundos.
   const start = () => {
-    child = spawn('powershell.exe', [...PS_ARGS, path.join(__dirname, 'win-sensors.ps1')], { windowsHide: true });
+    child = spawn('powershell.exe', [...PS_ARGS, path.join(DIR, 'win-sensors.ps1')], { windowsHide: true });
     readline.createInterface({ input: child.stdout }).on('line', (line) => {
       try {
         const evt = JSON.parse(line);
@@ -50,7 +53,7 @@ function startSensors() {
 
 function ocr(pngPath) {
   return new Promise((resolve) => {
-    execFile('powershell.exe', [...PS_ARGS, path.join(__dirname, 'ocr.ps1'), pngPath],
+    execFile('powershell.exe', [...PS_ARGS, path.join(DIR, 'ocr.ps1'), pngPath],
       { windowsHide: true, timeout: 20000, maxBuffer: 4 * 1024 * 1024 },
       (err, stdout) => resolve(err ? null : stdout));
   });

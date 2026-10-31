@@ -25,7 +25,13 @@ const { DayStats } = require('./stats');
 const { startSensors, ocr } = require('./sensors');
 
 const ROOT = path.join(__dirname, '..');
-const CONFIG_PATH = path.join(ROOT, 'config.json');
+// Dónde van los archivos que Clawd escribe (config, .env, logs):
+//   - con `npm start` → la carpeta del proyecto, como siempre;
+//   - instalado (.exe) → %APPDATA%\Clawd Buddy, porque el programa instalado es
+//     de solo lectura. El config.json del proyecto queda como "valores por defecto".
+const DATA = app.isPackaged ? app.getPath('userData') : ROOT;
+const CONFIG_PATH = path.join(DATA, 'config.json');
+const LOGS = path.join(DATA, 'logs');
 
 // ---------------------------------------------------------------------------
 // Configuración y API key
@@ -33,7 +39,7 @@ const CONFIG_PATH = path.join(ROOT, 'config.json');
 
 /** Lee el .env (líneas CLAVE=valor) sin dependencias externas. El .env manda: pisa variables del sistema con el mismo nombre. */
 function loadEnv() {
-  const file = path.join(ROOT, '.env');
+  const file = path.join(DATA, '.env');
   if (!fs.existsSync(file)) return;
   for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
@@ -41,7 +47,21 @@ function loadEnv() {
   }
 }
 
-const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+/**
+ * Lee la config: los valores por defecto (config.json del proyecto) + lo que
+ * cambiaste vos. Así, si una versión nueva agrega opciones, no se rompe.
+ */
+function loadConfig() {
+  const defaults = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
+  if (CONFIG_PATH === path.join(ROOT, 'config.json')) return defaults;
+  let mine = {};
+  try { mine = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch { /* primera vez: no hay */ }
+  const merged = { ...defaults, ...mine };
+  fs.mkdirSync(DATA, { recursive: true });
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2) + '\n'); // así lo podés abrir y editar
+  return merged;
+}
+const config = loadConfig();
 
 /** Guarda en config.json lo que se cambia desde el menú (ej: captura on/off). */
 function saveConfig() {
@@ -82,7 +102,7 @@ let workTimer = null;
 function debug(...args) {
   if (process.env.CLAWD_DEBUG !== '1') return;
   const line = `${new Date().toISOString()} ${args.map((a) => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')}\n`;
-  try { fs.mkdirSync(path.join(ROOT, 'logs'), { recursive: true }); fs.appendFileSync(path.join(ROOT, 'logs', 'debug.log'), line); } catch {}
+  try { fs.mkdirSync(LOGS, { recursive: true }); fs.appendFileSync(path.join(LOGS, 'debug.log'), line); } catch {}
 }
 
 /** Manda un mensaje al globito. */
@@ -218,8 +238,8 @@ function goodbye() {
  * carpeta del proyecto, que es lo mismo que hace `npm start`.
  */
 function loginItemOpts() {
-  if (app.isPackaged) return { name: 'ClawdBuddy' };
-  // entre comillas: la carpeta tiene espacios ("probar claude") y Windows la cortaría ahí
+  // entre comillas: las rutas tienen espacios ("Clawd Buddy.exe", "probar claude") y Windows las cortaría ahí
+  if (app.isPackaged) return { name: 'ClawdBuddy', path: `"${process.execPath}"` };
   return { name: 'ClawdBuddy', path: `"${process.execPath}"`, args: [`"${ROOT}"`] };
 }
 function applyAutoStart() {
@@ -273,7 +293,7 @@ function togglePause() {
 }
 
 function guardLogPath() {
-  return path.join(ROOT, 'logs', 'guard.log');
+  return path.join(LOGS, 'guard.log');
 }
 
 // ---------------------------------------------------------------------------
@@ -433,7 +453,7 @@ function wireSensors() {
   // Cambió la ventana activa.
   sensors.on('window', ({ process: proc, title }) => {
     // Ignoramos nuestra propia ventana (al hacer clic en Clawd).
-    if (/^electron$/i.test(proc) || title === 'Clawd Buddy') return;
+    if (/^(electron|clawd buddy)$/i.test(proc) || title === 'Clawd Buddy') return; // instalado, el proceso se llama "Clawd Buddy"
     const priv = isPrivate(proc, title);
     const clean = priv ? '[app privada]' : guard.check('ventana', title).clean;
     // ¿Fuiste a mirar a Claude? Entonces ya no hace falta insistir.
@@ -526,7 +546,9 @@ app.whenReady().then(() => {
 
   createWindow();
   createTray();
-  applyAutoStart(); // deja el registro de Windows igual que config.autoStart
+  // deja el registro de Windows igual que config.autoStart. Solo el instalado:
+  // si no, cada `npm start` haría que Windows abra la copia del proyecto.
+  if (app.isPackaged) applyAutoStart();
 
   // Clic derecho sobre Clawd → el menú propio. Le pasamos el estado actual
   // (pausado, captura) para que muestre los interruptores bien.
@@ -783,7 +805,7 @@ function onMusicResult({ cmd, ok, reason }) {
 // A la IA solo le pasamos los números y nombres de apps, para que te diga
 // una frase de cierre. Si la IA falla, la tarjeta sale igual sin la frase.
 // =============================================================================
-const stats = new DayStats(path.join(ROOT, 'logs'));
+const stats = new DayStats(LOGS);
 
 /** Cada 10 s: sumá esos 10 s a la app activa (si estás frente a la compu). */
 function trackDay() {
