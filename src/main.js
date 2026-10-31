@@ -22,7 +22,7 @@ const guard = require('./guard');
 const { Brain } = require('./brain');
 const { Pomodoro } = require('./focus');
 const { DayStats } = require('./stats');
-const { startSensors, startMediaControl, ocr } = require('./sensors');
+const { startSensors, ocr } = require('./sensors');
 
 const ROOT = path.join(__dirname, '..');
 const CONFIG_PATH = path.join(ROOT, 'config.json');
@@ -73,7 +73,6 @@ let win = null;
 let tray = null;
 let brain = null;
 let sensors = null;
-let mediaCtl = null; // control de la música (ver musicCommand)
 let workTimer = null;
 
 /**
@@ -500,6 +499,7 @@ function wireSensors() {
     }
   });
   sensors.on('error', (e) => console.error('sensores:', e.message));
+  sensors.on('media-control', onMusicResult); // respuesta a musicCommand
 }
 
 // ---------------------------------------------------------------------------
@@ -555,10 +555,6 @@ app.whenReady().then(() => {
   ipcMain.on('poke', () => speak('poke', { force: true }));
   // rueda del mouse sobre Clawd: para arriba = siguiente, para abajo = anterior
   ipcMain.on('music-wheel', (_e, dir) => musicCommand(dir > 0 ? 'next' : 'prev'));
-
-  mediaCtl = startMediaControl();
-  mediaCtl.on('result', onMusicResult);
-  mediaCtl.on('error', (e) => debug('[musica] error:', e.message));
 
   // Arrastre propio: al agarrar guardamos dónde estaba la ventana y al mover
   // la corremos lo mismo que se movió el mouse.
@@ -751,17 +747,17 @@ function checkDistraction() {
 // =============================================================================
 // Control de la música (play/pausa, siguiente, anterior)
 // Se usa desde el menú y con la rueda del mouse sobre Clawd. La orden la
-// ejecuta media-control.ps1 sobre la app que esté sonando (Spotify, navegador…).
+// ejecuta win-sensors.ps1 sobre la app que esté sonando (Spotify, navegador…).
 // =============================================================================
 let lastMusicCmd = { cmd: '', wasPlaying: false };
 
 function musicCommand(cmd) {
   lastMusicCmd = { cmd, wasPlaying: !!state.media?.playing };
   debug('[musica]', cmd);
-  mediaCtl?.send(cmd);
+  sensors?.send(cmd);
 }
 
-/** Respuesta de media-control.ps1: avisamos con un globito cortito. */
+/** Respuesta de win-sensors.ps1 a una orden de música: avisamos con un globito cortito. */
 function onMusicResult({ cmd, ok, reason }) {
   debug('[musica] resultado', cmd, ok, reason || '');
   if (!ok) {

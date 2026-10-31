@@ -3,6 +3,10 @@
 #
 # Corre en un bucle infinito (una vuelta por segundo) e imprime una línea JSON
 # por cada cambio. La lee src/sensors/index.js.
+# También CONTROLA la música: recibe órdenes por stdin, una por línea
+#   toggle → play/pausa     next → siguiente     prev → anterior
+# y responde {"type":"media-control","cmd":"next","ok":true}.
+# (Antes eso era otro PowerShell aparte; juntos ocupan ~60 MB menos de RAM.)
 #   - Ventana activa: cada 1 s (API user32 de Windows).
 #   - Música: cada 2 s (control de medios de Windows: Spotify, YouTube, etc.).
 #   - Notificaciones: cada 3 s (UserNotificationListener). Funciona aunque esté
@@ -72,9 +76,8 @@ function Read-Notifications {
   $script:firstNotifPass = $false
 }
 
-# Qué está sonando ahora (la sesión de medios activa de Windows).
-# Qué música leer: 1) la que está sonando, 2) Spotify, 3) la "actual" de Windows
-# (que a veces es un video pausado del navegador). Igual que media-control.ps1.
+# Qué música leer (y a cuál mandarle las órdenes): 1) la que está sonando,
+# 2) Spotify, 3) la "actual" de Windows (que a veces es un video pausado del navegador).
 function Pick-Session {
   $all = @($mediaMgr.GetSessions())
   $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
@@ -91,6 +94,41 @@ function Read-Media {
   @{
     type = 'media'; source = $s.SourceAppUserModelId; artist = $p.Artist; title = $p.Title
     playing = ($s.GetPlaybackInfo().PlaybackStatus -eq [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing)
+  }
+}
+
+# Ejecuta una orden de música y responde si funcionó. Le habla a la misma app
+# que leemos (sin simular teclas, así no aparece el cartel de volumen de Windows).
+function Invoke-MediaCommand($cmd) {
+  try {
+    $s = Pick-Session
+    if (-not $s) { Emit @{ type = 'media-control'; cmd = $cmd; ok = $false; reason = 'sin-musica' }; return }
+    $op = switch ($cmd) {
+      'toggle' { $s.TryTogglePlayPauseAsync() }
+      'next'   { $s.TrySkipNextAsync() }
+      'prev'   { $s.TrySkipPreviousAsync() }
+      default  { $null }
+    }
+    if (-not $op) { Emit @{ type = 'media-control'; cmd = $cmd; ok = $false; reason = 'orden-desconocida' }; return }
+    $ok = Await $op ([bool])
+    Emit @{ type = 'media-control'; cmd = $cmd; ok = [bool]$ok }
+  } catch {
+    Emit @{ type = 'media-control'; cmd = $cmd; ok = $false; reason = $_.Exception.Message }
+  }
+}
+
+# Lectura de órdenes SIN trabar el bucle: pedimos la próxima línea "en segundo
+# plano" y cada 100 ms miramos si ya llegó. (Usamos un StreamReader propio porque
+# [Console]::In.ReadLineAsync en PowerShell 5 se queda esperando igual.)
+$stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput())
+$nextCmd = $stdin.ReadLineAsync()
+function Check-Commands {
+  while ($script:nextCmd.IsCompleted) {
+    $line = $script:nextCmd.Result
+    if ($null -eq $line) { exit } # Node cerró la conexión: Clawd se cerró, terminamos
+    Invoke-MediaCommand $line.Trim()
+    $script:lastMedia = '' # que vuelva a avisar la canción (cambió o se pausó)
+    $script:nextCmd = $script:stdin.ReadLineAsync()
   }
 }
 
@@ -121,5 +159,6 @@ while ($true) {
     Emit @{ type = 'error'; message = $_.Exception.Message }
   }
   $tick++
-  Start-Sleep -Milliseconds 1000
+  # en vez de dormir 1 s de corrido, 10 siestas de 100 ms mirando si hay órdenes
+  for ($i = 0; $i -lt 10; $i++) { Check-Commands; Start-Sleep -Milliseconds 100 }
 }

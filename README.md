@@ -64,7 +64,7 @@ Pruebas: `npm test`.
 
 - Clic derecho → arriba del menú aparece la canción con ⏮ ⏯ ⏭ (el menú queda abierto para pasar varias).
 - Rueda del mouse sobre Clawd: para arriba = siguiente, para abajo = anterior.
-- Controla la app que está sonando; si no suena nada, Spotify (`src/sensors/media-control.ps1`).
+- Controla la app que está sonando; si no suena nada, Spotify (`src/sensors/win-sensors.ps1`, el mismo que lee la música).
 
 ## Modo foco
 

@@ -10,8 +10,9 @@
 //       'media'        { artist, title, playing, source } cambió la música
 //       'notification' { app, title, body }               llegó una notificación
 //       'status'       { notifications: 'Allowed' | … }  permiso de notificaciones
+//       'media-control'{ cmd, ok, reason? }              respuesta a send()
 //       'error'        { message }
-//   startMediaControl() → play/pausa, siguiente y anterior (media-control.ps1).
+//     y sensors.send('toggle' | 'next' | 'prev') controla la música.
 //   ocr(ruta)      → corre ocr.ps1 sobre una imagen y devuelve el texto (o null).
 // =============================================================================
 const { spawn, execFile } = require('child_process');
@@ -41,31 +42,8 @@ function startSensors() {
   };
   start();
 
-  events.stop = () => { stopped = true; child?.kill(); };
-  return events;
-}
-
-/**
- * Control de la música: deja abierto media-control.ps1 y le manda órdenes.
- *   const media = startMediaControl();
- *   media.send('toggle' | 'next' | 'prev');
- *   media.on('result', ({ cmd, ok }) => …)
- * Queda abierto para que responda al toque (abrir PowerShell tarda ~1 s).
- */
-function startMediaControl() {
-  const events = new EventEmitter();
-  let child = null;
-  let stopped = false;
-  const start = () => {
-    child = spawn('powershell.exe', [...PS_ARGS, path.join(__dirname, 'media-control.ps1')], { windowsHide: true });
-    readline.createInterface({ input: child.stdout }).on('line', (line) => {
-      try { events.emit('result', JSON.parse(line)); } catch { /* ignorar */ }
-    });
-    child.stderr.on('data', (d) => events.emit('error', { message: d.toString() }));
-    child.on('exit', () => { if (!stopped) setTimeout(start, 3000); });
-  };
-  start();
-  events.send = (cmd) => { if (child?.stdin.writable) child.stdin.write(cmd + '\n'); };
+  // órdenes de música → stdin del script (una por línea)
+  events.send = (cmd) => { if (child?.stdin.writable) child.stdin.write(`${cmd}\n`); };
   events.stop = () => { stopped = true; child?.kill(); };
   return events;
 }
@@ -78,4 +56,4 @@ function ocr(pngPath) {
   });
 }
 
-module.exports = { startSensors, startMediaControl, ocr };
+module.exports = { startSensors, ocr };
