@@ -116,6 +116,10 @@ const ICONS = {
   shield: ['.#####.', '#######', '###.###', '##...##', '.#####.', '..###..', '...#...'],
   gear:   ['..#.#..', '.#####.', '##...##', '.#...#.', '##...##', '.#####.', '..#.#..'],
   bye:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
+  // modo foco: tomatito (pomodoro) y tacita (descanso)
+  tomato: ['..#.#..', '...#...', '.#####.', '#######', '#######', '#######', '.#####.'],
+  stop:   ['.......', '.#####.', '.#####.', '.#####.', '.#####.', '.#####.', '.......'],
+  cup:    ['.#.#...', '#.#....', '.......', '#####..', '#####.#', '######.', '.###...'],
   // notitas para cuando baila
   note:   ['...###.', '...#.#.', '...#...', '...#...', '.###...', '.###...', '.......'],
   notes:  ['..#####', '..#...#', '..#...#', '..#...#', '###.###', '###.###', '.......'],
@@ -142,10 +146,13 @@ menu.querySelectorAll('button').forEach((btn, i) => {
 });
 
 /** Main nos pide abrir el menú y nos dice el estado actual. */
-window.clawd.onMenuOpen(({ paused, screenCapture }) => {
+window.clawd.onMenuOpen(({ paused, screenCapture, focusing }) => {
   const pause = menu.querySelector('[data-action="pause"]');
   pause.querySelector('span').textContent = paused ? 'Despertar a Clawd' : 'Dormir un rato';
   setIcon(pause, paused ? 'sun' : 'moon');
+  const focus = menu.querySelector('[data-action="focus"]');
+  focus.querySelector('span').textContent = focusing ? 'Terminar foco' : 'Modo foco';
+  setIcon(focus, focusing ? 'stop' : 'tomato');
   menu.querySelector('[data-action="capture"]').setAttribute('aria-checked', String(screenCapture));
 
   // reiniciamos las animaciones de apertura sacando y poniendo el menú
@@ -166,6 +173,36 @@ window.clawd.onMenuClose(closeMenu); // la ventana perdió el foco (clic en otra
 window.addEventListener('mousedown', (e) => {
   if (!menu.classList.contains('hidden') && !menu.contains(e.target) && e.button === 0) closeMenu();
 });
+
+// -----------------------------------------------------------------------------
+// Contador del modo foco: main nos dice la fase y a qué hora termina; acá
+// mostramos los minutos que quedan y la barrita, actualizando cada segundo.
+// -----------------------------------------------------------------------------
+const badge = document.getElementById('focus-badge');
+let focusInfo = { phase: 'off', endsAt: 0, total: 1 };
+let badgeTimer = null;
+
+window.clawd.onFocus(({ phase, endsAt }) => {
+  focusInfo = { phase, endsAt, total: Math.max(1, endsAt - Date.now()) };
+  clearInterval(badgeTimer);
+  if (phase === 'off') { badge.classList.add('hidden'); return; }
+  const rest = phase !== 'work';
+  badge.classList.toggle('rest', rest);
+  badge.querySelector('i').innerHTML = pixelIcon(rest ? 'cup' : 'tomato');
+  badge.classList.remove('hidden');
+  drawBadge();
+  badgeTimer = setInterval(drawBadge, 1000);
+});
+
+function drawBadge() {
+  const left = Math.max(0, focusInfo.endsAt - Date.now());
+  const m = Math.floor(left / 60000);
+  const s = Math.floor((left % 60000) / 1000);
+  badge.querySelector('span').textContent = `${m}:${String(s).padStart(2, '0')}`;
+  // la barrita se va llenando a medida que pasa el tiempo
+  badge.querySelector('.bar').style.width = `${100 - (left / focusInfo.total) * 100}%`;
+  badge.classList.toggle('ending', left < 60000);
+}
 
 // Despedida: saluda con el bracito, dice chau, salta y se encoge hasta desaparecer.
 // main.js cierra la app cuando termina (1.7 s).

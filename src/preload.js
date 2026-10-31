@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('clawd', {
   onMenuClose: (cb) => ipcRenderer.on('menu-close', () => cb()),
   // ventana → main: eligió una opción del menú ('pause', 'capture', 'poke', 'guardlog', 'config', 'quit')
   menuAction: (name) => ipcRenderer.send('menu-action', name),
+  // main → ventana: cambió la fase del modo foco { phase: 'work'|'break'|'longBreak'|'off', endsAt }
+  onFocus: (cb) => ipcRenderer.on('focus', (_e, info) => cb(info)),
   // ventana → main: true = el mouse está sobre algo clickeable (Clawd, globito, menú);
   // false = dejá pasar los clics a la app de abajo
   setMouseCapture: (on) => ipcRenderer.send('mouse-capture', on),

@@ -83,5 +83,31 @@
       "pwsh",
       "cmd"
     ]
+  },
+  "focus": {
+    "workMinutes": 25,
+    "breakMinutes": 5,
+    "longBreakMinutes": 15,
+    "cyclesBeforeLongBreak": 4,
+    "priorityApps": [
+      "Vínculo móvil",
+      "Phone Link",
+      "Teléfono"
+    ]
+  },
+  "distractions": {
+    "keywords": [
+      "youtube",
+      "tiktok",
+      "instagram",
+      "netflix",
+      "twitch",
+      "facebook",
+      "reddit",
+      "twitter",
+      "x.com"
+    ],
+    "focusSeconds": 45,
+    "minutes": 20
   }
 }

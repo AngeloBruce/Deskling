@@ -20,6 +20,7 @@ const os = require('os');
 const path = require('path');
 const guard = require('./guard');
 const { Brain } = require('./brain');
+const { Pomodoro } = require('./focus');
 const { startSensors, ocr } = require('./sensors');
 
 const ROOT = path.join(__dirname, '..');
@@ -54,6 +55,9 @@ const state = {
   media: null,           // { artist, title, playing, source }
   notifications: [],     // últimas notificaciones (ya filtradas), para dar contexto
   paused: false,         // pausado desde el menú → no habla ni avisa
+  held: [],              // notificaciones guardadas durante el foco { app, sensitive }
+  distractSince: 0,      // desde cuándo estás en una app de distracción (0 = no estás)
+  distractNagged: false, // ya te avisó en esta racha de distracción
   busy: false,           // esperando respuesta de la IA
   lastSpoke: 0,          // cuándo habló por última vez (cualquier motivo)
   lastMusicSpoke: 0,     // cuándo comentó música por última vez
@@ -183,6 +187,7 @@ function trayIcon() {
  */
 const MENU_ACTIONS = {
   pause: () => togglePause(),
+  focus: () => (pomodoro.active ? pomodoro.stop() : pomodoro.start()),
   capture: () => setCapture(!config.screenCapture),
   poke: () => speak('poke', { force: true }),
   guardlog: () => shell.openPath(guardLogPath()),
@@ -214,6 +219,7 @@ function buildMenu() {
     { label: state.paused ? '▶ Despertar a Clawd' : '⏸ Pausar (dormir)', click: MENU_ACTIONS.pause },
     { label: 'Ver mi pantalla (captura)', type: 'checkbox', checked: config.screenCapture, click: MENU_ACTIONS.capture },
     { label: '💬 Opiná ahora', click: MENU_ACTIONS.poke },
+    { label: pomodoro.active ? '🍅 Terminar foco' : `🍅 Modo foco (${config.focus.workMinutes} min)`, click: MENU_ACTIONS.focus },
     { type: 'separator' },
     { label: 'Ver registro de seguridad', click: MENU_ACTIONS.guardlog },
     { label: 'Abrir config.json', click: MENU_ACTIONS.config },
@@ -328,6 +334,8 @@ function buildContext(reason, withImage = false) {
  */
 async function speak(reason, { force = false } = {}) {
   if (state.paused || state.busy || !brain) return;
+  // En foco no opina de nada (salvo que lo toques con "Opiná ahora").
+  if (pomodoro.working && reason !== 'poke') return;
   const now = Date.now();
   if (!force) {
     if (now - state.lastSpoke < config.cooldownSeconds * 1000) return;
@@ -430,6 +438,12 @@ function wireSensors() {
     if (state.notifications.length > 10) state.notifications.shift();
 
     if (state.paused) return;
+    // En foco: las notificaciones se guardan y te las resume en el descanso,
+    // salvo las de apps importantes (config.focus.priorityApps, ej: llamadas).
+    if (pomodoro.working && !config.focus.priorityApps.includes(n.app)) {
+      state.held.push({ app: n.app, sensitive });
+      return;
+    }
     if (sensitive) {
       // No mostramos el contenido: solo avisamos que llegó algo delicado.
       say(`🔐 ${n.app}: te llegó un código o contraseña. No lo leo, fijate vos 👀`, { alert: true, sound: config.sound });
@@ -477,7 +491,7 @@ app.whenReady().then(() => {
   // (pausado, captura) para que muestre los interruptores bien.
   ipcMain.on('menu', () => {
     win.focus(); // así, si hacés clic en otra ventana, el menú se cierra (ver 'blur')
-    win.webContents.send('menu-open', { paused: state.paused, screenCapture: config.screenCapture });
+    win.webContents.send('menu-open', { paused: state.paused, screenCapture: config.screenCapture, focusing: pomodoro.active });
   });
   ipcMain.on('menu-action', (_e, name) => MENU_ACTIONS[name]?.());
 
@@ -514,6 +528,9 @@ app.whenReady().then(() => {
 
   // Recordatorios de bienestar (espalda, agua, ojos…), sin usar la IA.
   setInterval(wellnessTip, config.wellness.everyMinutes * 60 * 1000);
+
+  // ¿Te fuiste a YouTube/TikTok…? (ver checkDistraction)
+  setInterval(checkDistraction, 10 * 1000);
 });
 
 /**
@@ -522,9 +539,14 @@ app.whenReady().then(() => {
  * Si estás en pausa o Clawd está hablando de otra cosa, se lo saltea.
  */
 let lastTip = -1;
+function randomTip() {
+  const tips = config.wellness.tips;
+  return tips[Math.floor(Math.random() * tips.length)] || '';
+}
+
 function wellnessTip() {
   const tips = config.wellness.tips;
-  if (state.paused || state.busy || !tips.length) return;
+  if (state.paused || state.busy || pomodoro.working || !tips.length) return; // en foco, el tip llega en el descanso
   let i;
   do { i = Math.floor(Math.random() * tips.length); } while (tips.length > 1 && i === lastTip);
   lastTip = i;
@@ -596,4 +618,71 @@ function onClaudeEvent({ event, message, cwd }) {
       state.claudePending = null;
     }, config.claudeCode.nagMinutes * 60 * 1000),
   };
+}
+
+// =============================================================================
+// Modo foco (pomodoro) — la cuenta del tiempo está en focus.js
+// Durante el foco Clawd no opina, no tira tips y GUARDA las notificaciones
+// (salvo las de config.focus.priorityApps). Los avisos de Claude Code sí pasan:
+// son parte de tu trabajo. En el descanso te resume lo que llegó.
+// =============================================================================
+const pomodoro = new Pomodoro({ ...config.focus, onPhase: onFocusPhase });
+
+function onFocusPhase({ phase, endsAt, cycle, prev }) {
+  debug('[foco]', phase, 'ciclo', cycle);
+  win?.webContents.send('focus', { phase, endsAt });
+  const f = config.focus;
+
+  if (phase === 'work') {
+    state.held = [];
+    if (prev === 'off') say(`🍅 ¡Modo foco! ${f.workMinutes} min. Me quedo calladito y te guardo las notis.`, { face: 'happy' });
+    else say(`💪 ¡Volvemos! Otros ${f.workMinutes} min de foco.`, { sound: config.sound, face: 'happy' });
+  } else if (phase === 'break' || phase === 'longBreak') {
+    const mins = phase === 'longBreak' ? f.longBreakMinutes : f.breakMinutes;
+    const extra = phase === 'longBreak' ? ` ¡Ya van ${cycle} 🍅, te ganaste uno largo!` : '';
+    say(`⏰ ¡Listo el foco! Descanso de ${mins} min.${extra} ${randomTip()}`, { alert: true, sound: config.sound, face: 'happy', seconds: 15 });
+    setTimeout(releaseHeld, 6000); // el resumen de notis, después del festejo
+  } else if (phase === 'off' && prev !== 'off') {
+    say(cycle ? `✅ Foco terminado. ¡Hiciste ${cycle} 🍅, bien ahí!` : '✅ Listo, salimos del modo foco.', { face: 'happy' });
+    setTimeout(releaseHeld, 4000);
+  }
+}
+
+/** Resume las notificaciones guardadas: "3 de WhatsApp, 1 de Discord". */
+function releaseHeld() {
+  if (!state.held.length) return;
+  const count = {};
+  for (const n of state.held) count[n.app] = (count[n.app] || 0) + 1;
+  const list = Object.entries(count).map(([a, c]) => `${c} de ${a}`).join(', ');
+  const secret = state.held.some((n) => n.sensitive) ? ' (hay un código 🔐, fijate vos)' : '';
+  say(`📬 Mientras te concentrabas: ${list}${secret}`, { alert: true, sound: config.sound, seconds: 15 });
+  state.held = [];
+}
+
+// =============================================================================
+// Aviso de distracción
+// Si la ventana activa parece YouTube/TikTok/etc. (config.distractions.keywords):
+//   - en foco, te avisa a los pocos segundos (focusSeconds);
+//   - fuera del foco, después de un rato largo (minutes).
+// Te avisa una sola vez por racha: si te vas y volvés, empieza de nuevo.
+// =============================================================================
+function checkDistraction() {
+  const d = config.distractions;
+  const w = state.window;
+  const hay = w && !w.private ? `${w.process} ${w.title}`.toLowerCase() : '';
+  const site = d.keywords.find((k) => hay.includes(k));
+  if (!site) { state.distractSince = 0; state.distractNagged = false; return; }
+
+  if (!state.distractSince) state.distractSince = Date.now();
+  if (state.distractNagged || state.paused) return;
+  const elapsed = Date.now() - state.distractSince;
+  const name = site.charAt(0).toUpperCase() + site.slice(1);
+
+  if (pomodoro.working && elapsed >= d.focusSeconds * 1000) {
+    state.distractNagged = true;
+    say(`👀 Oye… estamos en modo foco y eso parece ${name}. ¿Volvemos?`, { alert: true, sound: config.sound, face: 'squint' });
+  } else if (!pomodoro.working && elapsed >= d.minutes * 60 * 1000) {
+    state.distractNagged = true;
+    say(`📱 Llevas ${Math.round(elapsed / 60000)} min en ${name}. ¿Un ratito más o volvemos?`, { sound: config.sound, face: 'squint' });
+  }
 }

@@ -55,6 +55,20 @@ Pruebas: `npm test`.
 - `personality`: la personalidad de Clawd.
 
 - `claudeCode`: avisos de Claude Code (ver abajo). `nagMinutes` = cuánto espera antes de enojarse.
+- `focus`: modo foco / pomodoro (`workMinutes`, `breakMinutes`, `longBreakMinutes`, `cyclesBeforeLongBreak`).
+  `priorityApps`: apps cuyas notificaciones se muestran igual durante el foco.
+- `distractions`: palabras que marcan una app como distracción (`keywords`). En foco avisa a los
+  `focusSeconds` segundos; fuera del foco, a los `minutes` minutos.
+
+## Modo foco
+
+Clic derecho → **Modo foco**. Mientras dura (25 min por defecto):
+- Clawd no opina ni tira tips (salvo que le pidas "Opiná ahora");
+- las notificaciones se guardan y en el descanso te dice cuántas llegaron y de qué app;
+- los avisos de Claude Code sí pasan;
+- si te vas a YouTube/TikTok/etc., te lo recuerda.
+
+Al lado de Clawd aparece un contador (🍅 en foco, ☕ en el descanso). Cada 4 focos toca descanso largo.
 
 ## Avisos de Claude Code
 
