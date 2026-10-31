@@ -14,7 +14,7 @@
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8"
   },
-  "author": "Angelo",
+  "author": "AngeloBruce",
   "build": {
     "appId": "com.angelo.clawdbuddy",
     "productName": "Clawd Buddy",
@@ -42,5 +42,10 @@
       "shortcutName": "Clawd Buddy",
       "runAfterFinish": true
     }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AngeloBruce/Deskling.git"
   }
 }

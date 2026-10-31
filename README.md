@@ -1,11 +1,22 @@
-# Clawd Buddy 🦀
+# Deskling 🦀
 
-Un compañero de escritorio para Windows: un Clawd pixelado que vive en una esquina
+Un compañero de escritorio para Windows: un bichito pixelado que vive en una esquina
 de la pantalla, mira qué música escuchas y en qué estás trabajando, te comenta
 cosas y te avisa de tus notificaciones **aunque tengas activado No molestar**.
 
 Usa IA gratis (Groq o NVIDIA) y filtra contraseñas, códigos y otros datos sensibles
 **antes** de mandar cualquier cosa.
+
+**Qué hace:**
+- 🎵 Comenta la música que suena y baila con Spotify. Controla play/pausa y siguiente desde el menú o con la rueda del mouse.
+- 💻 Opina sobre lo que estás haciendo (título de la ventana y, si lo activás, una captura filtrada).
+- 📩 Te lee las notificaciones de Windows, aunque tengas No molestar activado.
+- 🍅 Modo foco (pomodoro): se calla, te guarda las notificaciones y te avisa si te vas a YouTube.
+- ✅ Te avisa cuando Claude Code termina o necesita permiso.
+- 📊 Al final del día te muestra un resumen: apps, pomodoros, canciones.
+- 🔐 Todo pasa por un filtro de seguridad local antes de salir a la IA.
+
+> La app todavía se instala con el nombre interno **"Clawd Buddy"**.
 
 ## Cómo usarlo
 
@@ -138,3 +149,12 @@ test/guard.test.js     pruebas del filtro
 
 > Clawd es la mascota de Claude Code y una marca de Anthropic. Este es un proyecto
 > personal de fans, no es oficial.
+
+## Aviso
+
+Proyecto personal y sin fines de lucro. **No tiene relación con Anthropic.**
+El personaje Clawd y la marca Claude pertenecen a Anthropic. Este repo solo se inspira en ellos.
+
+## Licencia
+
+El código está bajo licencia [MIT](LICENSE).
