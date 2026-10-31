@@ -80,6 +80,21 @@
     <span class="dots">···</span>
   </div>
 
+  <!--
+    Menú propio (clic derecho sobre Clawd). Sale al costado de Clawd, del lado
+    que tiene espacio. Los iconitos pixel los dibuja renderer.js (ICONS).
+  -->
+  <div id="menu" class="hidden" role="menu">
+    <div class="menu-title">¿qué hacemos?</div>
+    <button data-action="pause" data-icon="moon" role="menuitem"><i></i><span>Dormir un rato</span></button>
+    <button data-action="capture" data-icon="eye" role="menuitemcheckbox"><i></i><span>Ver pantalla</span><b class="switch"></b></button>
+    <button data-action="poke" data-icon="chat" role="menuitem"><i></i><span>Opiná ahora</span></button>
+    <hr>
+    <button data-action="guardlog" data-icon="shield" role="menuitem"><i></i><span>Registro de seguridad</span></button>
+    <button data-action="config" data-icon="gear" role="menuitem"><i></i><span>Configuración</span></button>
+    <button data-action="quit" data-icon="bye" role="menuitem" class="danger"><i></i><span>Chau, Clawd</span></button>
+  </div>
+
   <script src="renderer.js"></script>
 </body>
 </html>

@@ -11,6 +11,11 @@ contextBridge.exposeInMainWorld('clawd', {
   onMood: (cb) => ipcRenderer.on('mood', (_e, mood) => cb(mood)),
   // ventana → main: abrir el menú (clic derecho sobre Clawd)
   openMenu: () => ipcRenderer.send('menu'),
+  // main → ventana: abrir/cerrar el menú propio (con el estado: pausado, captura)
+  onMenuOpen: (cb) => ipcRenderer.on('menu-open', (_e, st) => cb(st)),
+  onMenuClose: (cb) => ipcRenderer.on('menu-close', () => cb()),
+  // ventana → main: eligió una opción del menú ('pause', 'capture', 'poke', 'guardlog', 'config', 'quit')
+  menuAction: (name) => ipcRenderer.send('menu-action', name),
   // ventana → main: "hablá ahora" (doble clic sobre Clawd)
   poke: () => ipcRenderer.send('poke'),
   // ventana → main: arrastrar la ventana (start = agarró, move = cuánto se movió el mouse)

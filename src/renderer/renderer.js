@@ -91,8 +91,87 @@ window.clawd.onMood((mood) => {
 // Clic en el globito → se cierra.
 bubble.addEventListener('click', () => bubble.classList.add('hidden'));
 
-// Clic derecho sobre Clawd → menú (pausar, captura, salir…).
-clawdEl.addEventListener('contextmenu', (e) => { e.preventDefault(); window.clawd.openMenu(); });
+// Clic derecho sobre Clawd → menú propio (si ya está abierto, lo cierra).
+clawdEl.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (menu.classList.contains('hidden')) window.clawd.openMenu(); // main responde con 'menu-open'
+  else closeMenu();
+});
+
+// -----------------------------------------------------------------------------
+// Menú propio
+// -----------------------------------------------------------------------------
+const menu = document.getElementById('menu');
+
+/**
+ * Iconitos pixel de 7x7: cada "#" es un píxel pintado.
+ * Para cambiar un ícono, dibujalo acá con # y puntos.
+ */
+const ICONS = {
+  moon:   ['..###..', '.##....', '##.....', '##.....', '##.....', '.##....', '..###..'],
+  sun:    ['#..#..#', '.#...#.', '..###..', '#.###.#', '..###..', '.#...#.', '#..#..#'],
+  eye:    ['.......', '..###..', '.#...#.', '#..#..#', '.#...#.', '..###..', '.......'],
+  chat:   ['#######', '#.....#', '#.#.#.#', '#.....#', '#######', '##.....', '#......'],
+  shield: ['.#####.', '#######', '###.###', '##...##', '.#####.', '..###..', '...#...'],
+  gear:   ['..#.#..', '.#####.', '##...##', '.#...#.', '##...##', '.#####.', '..#.#..'],
+  bye:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
+};
+
+/** Convierte un dibujo de ICONS en un <svg> de rectángulos. */
+function pixelIcon(name) {
+  const rects = ICONS[name].flatMap((row, y) =>
+    [...row].map((c, x) => (c === '#' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : ''))).join('');
+  return `<svg viewBox="0 0 7 7" shape-rendering="crispEdges">${rects}</svg>`;
+}
+
+function setIcon(btn, name) {
+  btn.querySelector('i').innerHTML = pixelIcon(name);
+}
+
+menu.querySelectorAll('button').forEach((btn, i) => {
+  setIcon(btn, btn.dataset.icon);
+  btn.style.animationDelay = `${60 + i * 25}ms`; // aparecen en cascada
+  btn.addEventListener('click', () => {
+    window.clawd.menuAction(btn.dataset.action);
+    closeMenu();
+  });
+});
+
+/** Main nos pide abrir el menú y nos dice el estado actual. */
+window.clawd.onMenuOpen(({ paused, screenCapture }) => {
+  const pause = menu.querySelector('[data-action="pause"]');
+  pause.querySelector('span').textContent = paused ? 'Despertar a Clawd' : 'Dormir un rato';
+  setIcon(pause, paused ? 'sun' : 'moon');
+  menu.querySelector('[data-action="capture"]').setAttribute('aria-checked', String(screenCapture));
+
+  // reiniciamos las animaciones de apertura sacando y poniendo el menú
+  menu.classList.add('hidden');
+  void menu.offsetWidth;
+  menu.classList.remove('hidden');
+  document.body.classList.add('menu-open');
+  setFace('happy', 1200);
+});
+
+function closeMenu() {
+  menu.classList.add('hidden');
+  document.body.classList.remove('menu-open');
+}
+window.clawd.onMenuClose(closeMenu); // la ventana perdió el foco (clic en otra app)
+
+// Clic en cualquier lado fuera del menú → se cierra.
+window.addEventListener('mousedown', (e) => {
+  if (!menu.classList.contains('hidden') && !menu.contains(e.target) && e.button === 0) closeMenu();
+});
+
+// Teclado: Escape cierra, flechas recorren las opciones.
+window.addEventListener('keydown', (e) => {
+  if (menu.classList.contains('hidden')) return;
+  const items = [...menu.querySelectorAll('button')];
+  const at = items.indexOf(document.activeElement);
+  if (e.key === 'Escape') closeMenu();
+  else if (e.key === 'ArrowDown') { e.preventDefault(); items[(at + 1) % items.length].focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); items[(at - 1 + items.length) % items.length].focus(); }
+});
 
 // Doble clic sobre Clawd → que opine ya.
 clawdEl.addEventListener('dblclick', () => window.clawd.poke());

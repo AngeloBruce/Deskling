@@ -177,28 +177,38 @@ function trayIcon() {
   return nativeImage.createFromBitmap(buf, { width: 16, height: 16 });
 }
 
-/** Menú compartido por la bandeja y el clic derecho sobre Clawd. */
+/**
+ * Acciones del menú. Las usan los dos menús: el propio (clic derecho sobre
+ * Clawd, lo dibuja renderer.js) y el nativo de la bandeja.
+ */
+const MENU_ACTIONS = {
+  pause: () => togglePause(),
+  capture: () => setCapture(!config.screenCapture),
+  poke: () => speak('poke', { force: true }),
+  guardlog: () => shell.openPath(guardLogPath()),
+  config: () => shell.openPath(CONFIG_PATH),
+  quit: () => app.quit(),
+};
+
+function setCapture(on) {
+  config.screenCapture = on;
+  saveConfig();
+  say(on
+    ? '👀 Ok, voy a mirar tu pantalla de vez en cuando (sin datos sensibles).'
+    : '🙈 Listo, ya no miro tu pantalla. Solo veo títulos.');
+}
+
+/** Menú nativo de Windows: solo para el ícono de la bandeja. */
 function buildMenu() {
   return Menu.buildFromTemplate([
-    { label: state.paused ? '▶ Despertar a Clawd' : '⏸ Pausar (dormir)', click: togglePause },
-    {
-      label: 'Ver mi pantalla (captura)',
-      type: 'checkbox',
-      checked: config.screenCapture,
-      click: (item) => {
-        config.screenCapture = item.checked;
-        saveConfig();
-        say(item.checked
-          ? '👀 Ok, voy a mirar tu pantalla de vez en cuando (sin datos sensibles).'
-          : '🙈 Listo, ya no miro tu pantalla. Solo veo títulos.');
-      },
-    },
-    { label: '💬 Opiná ahora', click: () => speak('poke', { force: true }) },
+    { label: state.paused ? '▶ Despertar a Clawd' : '⏸ Pausar (dormir)', click: MENU_ACTIONS.pause },
+    { label: 'Ver mi pantalla (captura)', type: 'checkbox', checked: config.screenCapture, click: MENU_ACTIONS.capture },
+    { label: '💬 Opiná ahora', click: MENU_ACTIONS.poke },
     { type: 'separator' },
-    { label: 'Ver registro de seguridad', click: () => shell.openPath(guardLogPath()) },
-    { label: 'Abrir config.json', click: () => shell.openPath(CONFIG_PATH) },
+    { label: 'Ver registro de seguridad', click: MENU_ACTIONS.guardlog },
+    { label: 'Abrir config.json', click: MENU_ACTIONS.config },
     { type: 'separator' },
-    { label: 'Salir', click: () => app.quit() },
+    { label: 'Salir', click: MENU_ACTIONS.quit },
   ]);
 }
 
@@ -439,7 +449,14 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
-  ipcMain.on('menu', () => buildMenu().popup({ window: win }));
+  // Clic derecho sobre Clawd → el menú propio. Le pasamos el estado actual
+  // (pausado, captura) para que muestre los interruptores bien.
+  ipcMain.on('menu', () => {
+    win.focus(); // así, si hacés clic en otra ventana, el menú se cierra (ver 'blur')
+    win.webContents.send('menu-open', { paused: state.paused, screenCapture: config.screenCapture });
+  });
+  ipcMain.on('menu-action', (_e, name) => MENU_ACTIONS[name]?.());
+  win.on('blur', () => win.webContents.send('menu-close'));
   ipcMain.on('poke', () => speak('poke', { force: true }));
 
   // Arrastre propio: al agarrar guardamos dónde estaba la ventana y al mover
