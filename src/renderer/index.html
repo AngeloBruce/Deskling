@@ -19,22 +19,21 @@
   -->
   <div id="clawd" class="idle" data-face="normal" title="Doble clic: que opine ahora · Clic derecho: menú">
     <svg viewBox="0 0 32 26" shape-rendering="crispEdges">
-      <!-- Laptop: va primero para quedar detrás de Clawd cuando la saca. La tapa
-           tiene 3 dibujos (cerrada, a medio abrir, abierta) que style.css va alternando. -->
-      <g class="laptop"><g transform="translate(4 0)">
-        <rect class="lap-base" x="-11" y="22" width="10" height="2" />
-        <rect class="lap-keys" x="-9" y="22" width="7" height="1" />
-        <g class="lid lid-closed"><rect x="-11" y="21" width="10" height="1" /></g>
+      <!-- Laptop: va primero para quedar detrás de Clawd. La tapa tiene 3 dibujos
+           (cerrada, a medio abrir, abierta) que style.css va alternando. -->
+      <g class="laptop">
+        <rect class="lap-base" x="-6" y="22" width="12" height="2" />
+        <rect class="lap-top" x="-6" y="22" width="12" height="1" />
+        <g class="lid lid-closed"><rect x="-6" y="21" width="12" height="1" /></g>
         <g class="lid lid-half">
-          <rect x="-13" y="21" width="3" height="1" /><rect x="-16" y="20" width="3" height="1" /><rect x="-19" y="19" width="3" height="1" />
+          <rect x="-9" y="21" width="3" height="1" /><rect x="-12" y="20" width="3" height="1" /><rect x="-15" y="19" width="3" height="1" />
         </g>
         <g class="lid lid-open">
-          <rect x="-12" y="20" width="2" height="2" /><rect x="-13" y="18" width="2" height="2" />
-          <rect x="-14" y="16" width="2" height="2" /><rect x="-15" y="14" width="2" height="2" />
-          <rect class="lap-glow" x="-10" y="20" width="1" height="1" /><rect class="lap-glow" x="-11" y="18" width="1" height="2" />
-          <rect class="lap-glow" x="-12" y="16" width="1" height="2" /><rect class="lap-glow" x="-13" y="14" width="1" height="2" />
+          <rect x="-7" y="20" width="2" height="2" /><rect x="-8" y="18" width="2" height="2" />
+          <rect x="-9" y="16" width="2" height="2" /><rect x="-10" y="14" width="2" height="2" />
+          <rect x="-11" y="12" width="2" height="2" />
         </g>
-      </g></g>
+      </g>
       <g class="body">
         <rect x="4" y="4" width="24" height="14" />   <!-- cuerpo -->
         <rect x="0" y="8" width="4" height="4" />     <!-- bracito izq -->
@@ -89,6 +88,21 @@
         <rect x="14" y="12" width="1" height="1" />
         <rect x="15" y="13" width="2" height="1" />
         <rect x="17" y="12" width="1" height="1" />
+      </g>
+      <!-- Clawd usando la laptop: otro dibujo entero, de costado y agachado, con patitas
+           cortas y los dos bracitos hacia adelante. Solo se ve con la clase .working. -->
+      <g class="pose">
+        <rect class="fur" x="7" y="4" width="24" height="8" />
+        <rect class="fur" x="3" y="12" width="28" height="9" />
+        <rect class="shade" x="26" y="4" width="5" height="17" />
+        <rect class="arm arm-back" x="1" y="15" width="7" height="3" />
+        <rect class="arm arm-front" x="1" y="12" width="7" height="3" />
+        <rect class="pose-eye" x="7" y="8" width="2" height="3" />
+        <rect class="pose-eye" x="18" y="8" width="2" height="3" />
+        <rect class="pose-leg" x="8" y="21" width="3" height="3" />
+        <rect class="pose-leg" x="13" y="21" width="3" height="3" />
+        <rect class="pose-leg" x="20" y="21" width="3" height="3" />
+        <rect class="pose-leg" x="25" y="21" width="3" height="3" />
       </g>
     </svg>
     <!-- "Zzz" cuando duerme (pausado) y "..." cuando piensa -->
