@@ -1,10 +1,10 @@
 {
-  "provider": "nvidia",
+  "provider": "groq",
   "providers": {
     "groq": {
       "baseURL": "https://api.groq.com/openai/v1",
       "model": "openai/gpt-oss-20b",
-      "visionModel": "meta-llama/llama-4-scout-17b-16e-instruct",
+      "visionModel": "qwen/qwen3.8-27b",
       "envKey": "GROQ_API_KEY",
       "extra": {
         "reasoning_effort": "low"

@@ -246,6 +246,36 @@ function loginItemOpts() {
 function applyAutoStart(force = false) {
   app.setLoginItemSettings({ openAtLogin: !!config.autoStart, ...loginItemOpts() });
   if (config.autoStart) approveStartup(force);
+  if (app.isPackaged) logonTask(!!config.autoStart);
+}
+
+/**
+ * Plan B (el que de verdad funciona en algunas versiones de Windows 11): una
+ * tarea del Programador de tareas que abre Clawd cuando iniciás sesión.
+ * En esas versiones la lista de "Run" no abre ninguna app de tu usuario,
+ * aunque esté activada. La tarea es solo de tu usuario y no pide administrador.
+ * Si las dos cosas abren Clawd, el segundo se cierra solo (una sola instancia).
+ */
+const TASK = 'ClawdBuddy';
+function logonTask(on) {
+  const opts = { windowsHide: true };
+  if (!on) return execFile('schtasks.exe', ['/delete', '/tn', TASK, '/f'], opts, () => {});
+  // schtasks /query termina con error si la tarea no existe → recién ahí la creamos
+  execFile('schtasks.exe', ['/query', '/tn', TASK], opts, (missing) => {
+    if (!missing) return;
+    const exe = process.execPath.replace(/'/g, "''");
+    const ps = [
+      '$u = "$env:USERDOMAIN\\$env:USERNAME"',
+      '$t = New-ScheduledTaskTrigger -AtLogOn -User $u',
+      "$t.Delay = 'PT10S'", // 10 s después de entrar, cuando el escritorio ya cargó
+      `$a = New-ScheduledTaskAction -Execute '${exe}'`,
+      '$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew',
+      '$p = New-ScheduledTaskPrincipal -UserId $u -LogonType Interactive -RunLevel Limited',
+      `Register-ScheduledTask -TaskName '${TASK}' -Action $a -Trigger $t -Settings $s -Principal $p -Description 'Abre Clawd al iniciar sesión' -Force | Out-Null`,
+    ].join('; ');
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], opts,
+      (err) => debug('[arranque] tarea programada', err ? `falló: ${err.message}` : 'creada'));
+  });
 }
 
 /**
@@ -454,8 +484,12 @@ async function speak(reason, { force = false } = {}) {
           BAD_KEY: '🔑 La API key no funciona. Revisala en el .env.',
           NO_MODEL: '🤖 El modelo de IA no está disponible. Cambialo en config.json.',
         };
-        const offline = e.name === 'TimeoutError' || e.name === 'TypeError'; // fetch sin internet
-        say(msgs[e.message] || (offline ? 'Estoy sin señal 📡 Revisá tu internet.' : '😵 Algo falló con la IA. Mirá logs/debug.log.'));
+        // TimeoutError = el servidor de la IA no contestó a tiempo (tu internet puede andar bien)
+        // TypeError "fetch failed" = no se pudo ni conectar (ahí sí suele ser el internet)
+        const slow = e.name === 'TimeoutError';
+        const offline = e.name === 'TypeError' && /fetch/i.test(e.message);
+        say(msgs[e.message] || (slow ? '🐢 La IA no me contesta: su servidor está lento o caído. Probá más tarde o cambiá de modelo.'
+          : offline ? 'Estoy sin señal 📡 Revisá tu internet.' : '😵 Algo falló con la IA. Mirá logs/debug.log.'));
       }
     }
   } finally {
