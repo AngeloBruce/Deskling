@@ -41,22 +41,25 @@ const LOGS = path.join(DATA, 'logs');
 /** Lee el .env (líneas CLAVE=valor) sin dependencias externas. El .env manda: pisa variables del sistema con el mismo nombre. */
 function loadEnv() {
   const file = path.join(DATA, '.env');
-  if (!fs.existsSync(file)) return;
+  const loaded = new Set(); // qué variables salieron del .env (para el log de arranque)
+  if (!fs.existsSync(file)) return loaded;
   for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m && m[2]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    if (m && m[2]) { process.env[m[1]] = m[2].replace(/^["']|["']$/g, ''); loaded.add(m[1]); }
   }
+  return loaded;
 }
 
 /**
  * Lee la config: los valores por defecto (config.json del proyecto) + lo que
  * cambiaste vos. Así, si una versión nueva agrega opciones, no se rompe.
  */
+let configReadError = null; // para el log de arranque
 function loadConfig() {
   const defaults = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
   if (CONFIG_PATH === path.join(ROOT, 'config.json')) return defaults;
   let mine = {};
-  try { mine = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch { /* primera vez: no hay */ }
+  try { mine = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch (e) { configReadError = e.code || e.message; /* primera vez: no hay */ }
   const merged = { ...defaults, ...mine };
   fs.mkdirSync(DATA, { recursive: true });
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2) + '\n'); // así lo podés abrir y editar
@@ -104,6 +107,15 @@ function debug(...args) {
   if (process.env.CLAWD_DEBUG !== '1') return;
   const line = `${new Date().toISOString()} ${args.map((a) => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')}\n`;
   try { fs.mkdirSync(LOGS, { recursive: true }); fs.appendFileSync(path.join(LOGS, 'debug.log'), line); } catch {}
+}
+
+/**
+ * Errores importantes, SIEMPRE (no hace falta CLAWD_DEBUG): logs/errors.log.
+ * Nunca escribe la key ni lo que ves; solo qué falló.
+ */
+function errorLog(msg) {
+  debug('[error]', msg);
+  try { fs.mkdirSync(LOGS, { recursive: true }); fs.appendFileSync(path.join(LOGS, 'errors.log'), `${new Date().toISOString()} ${msg}\n`); } catch {}
 }
 
 /** Manda un mensaje al globito. */
@@ -470,6 +482,7 @@ async function speak(reason, { force = false } = {}) {
     else mood('idle');
   } catch (e) {
     mood('idle');
+    errorLog(`IA (${reason}): ${e.name} ${e.message}`);
     if (e.message === 'NO_KEY') {
       if (!state.warnedNoKey) say('Me falta la API key 🔑 Copiá .env.example a .env y poné tu key de Groq.', { seconds: 30 });
       state.warnedNoKey = true;
@@ -585,10 +598,16 @@ function wireSensors() {
 if (!app.requestSingleInstanceLock()) app.quit();
 
 app.whenReady().then(() => {
-  loadEnv();
+  const fromEnvFile = loadEnv();
   guard.setLogFile(guardLogPath());
 
   const p = config.providers[config.provider];
+  // De dónde salió la key (el .env o una variable de Windows) + una "huella" corta
+  // para comparar keys sin escribirlas. Sirve cuando la IA dice "la key no funciona".
+  const key = process.env[p.envKey] || '';
+  const huella = key ? require('crypto').createHash('sha256').update(key).digest('hex').slice(0, 8) : '-';
+  errorLog(`arranque: datos=${DATA} empaquetada=${app.isPackaged} config=${configReadError || 'ok'} carpeta=${process.cwd()}`);
+  errorLog(`arranque: proveedor=${config.provider} key=${!key ? 'falta' : fromEnvFile.has(p.envKey) ? '.env' : 'variable de Windows'} huella=${huella}`);
   brain = new Brain({
     baseURL: p.baseURL,
     apiKey: process.env[p.envKey],
