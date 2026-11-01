@@ -1,6 +1,6 @@
 {
-  "name": "clawd-buddy",
-  "productName": "Clawd Buddy",
+  "name": "deskling",
+  "productName": "Deskling",
   "version": "0.1.0",
   "description": "Compañero de escritorio: Clawd mira tu música, tu trabajo y tus notificaciones y opina.",
   "main": "src/main.js",
@@ -16,8 +16,8 @@
   },
   "author": "AngeloBruce",
   "build": {
-    "appId": "com.angelo.clawdbuddy",
-    "productName": "Clawd Buddy",
+    "appId": "com.angelo.deskling",
+    "productName": "Deskling",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -39,7 +39,7 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Clawd Buddy",
+      "shortcutName": "Deskling",
       "runAfterFinish": true
     }
   },

@@ -14,9 +14,8 @@ Usa IA gratis (Groq o NVIDIA) y filtra contraseñas, códigos y otros datos sens
 - 🍅 Modo foco (pomodoro): se calla, te guarda las notificaciones y te avisa si te vas a YouTube.
 - ✅ Te avisa cuando Claude Code termina o necesita permiso.
 - 📊 Al final del día te muestra un resumen: apps, pomodoros, canciones.
+- 💻 De vez en cuando saca su laptop y se pone a teclear.
 - 🔐 Todo pasa por un filtro de seguridad local antes de salir a la IA.
-
-> La app todavía se instala con el nombre interno **"Clawd Buddy"**.
 
 ## Cómo usarlo
 
@@ -37,9 +36,9 @@ Usa IA gratis (Groq o NVIDIA) y filtra contraseñas, códigos y otros datos sens
 npm run dist
 ```
 
-Genera `dist/Clawd Buddy Setup 0.1.0.exe`. Al abrirlo, se instala solo para tu usuario (sin pedir administrador) en `%LOCALAPPDATA%\Programs\clawd-buddy`, con accesos directos en el escritorio y en el menú Inicio. Se desinstala desde Configuración → Aplicaciones.
+Genera `dist/Deskling Setup 0.1.0.exe`. Al abrirlo, se instala solo para tu usuario (sin pedir administrador) en `%LOCALAPPDATA%\Programs\deskling`, con accesos directos en el escritorio y en el menú Inicio. Se desinstala desde Configuración → Aplicaciones.
 
-- **Tus datos van aparte**, en `%APPDATA%\Clawd Buddy`: ahí van `config.json`, los logs y el `.env` con tu key. Copiá ahí tu `.env` antes de abrirlo por primera vez. La key nunca se mete adentro del instalador.
+- **Tus datos van aparte**, en `%APPDATA%\Deskling`: ahí van `config.json`, los logs y el `.env` con tu key. Copiá ahí tu `.env` antes de abrirlo por primera vez. La key nunca se mete adentro del instalador.
 - **Aviso de Windows SmartScreen:** como el `.exe` no está firmado (un certificado cuesta plata), Windows puede mostrar "Windows protegió su PC". Tocá *Más información → Ejecutar de todas formas*.
 - **Si `npm run dist` falla con "Cannot create symbolic link"**: es un problema conocido de electron-builder en Windows sin permisos de administrador. Activá el *Modo de programador* de Windows, o extraé a mano `winCodeSign` en `%LOCALAPPDATA%\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0` sin la carpeta `darwin`.
 
@@ -102,7 +101,7 @@ Al lado de Clawd aparece un contador (🍅 en foco, ☕ en el descanso). Cada 4 
 
 ## Arrancar con Windows
 
-Clawd se abre solo cuando iniciás sesión en Windows (la versión instalada; con `npm start` no se toca el arranque, salvo que uses el interruptor). Se apaga y se prende desde el menú → **"Abrir al iniciar"** (o `autoStart` en `config.json`). Lo que hace es escribir una entrada `ClawdBuddy` en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, que es solo de tu usuario y no necesita permisos de administrador. Para verla o borrarla a mano: Administrador de tareas → Aplicaciones de arranque.
+Clawd se abre solo cuando iniciás sesión en Windows (la versión instalada; con `npm start` no se toca el arranque, salvo que uses el interruptor). Se apaga y se prende desde el menú → **"Abrir al iniciar"** (o `autoStart` en `config.json`). Lo que hace es crear una tarea `Deskling` en el Programador de tareas y una entrada en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, porque algunas versiones de Windows 11 ignoran esa lista. Las dos son solo de tu usuario y no necesitan permisos de administrador.
 
 ## Resumen del día
 
@@ -121,8 +120,8 @@ Los días con menos de 30 min de uso (`summary.minActiveMinutes`) no tienen resu
 
 ```json
 "hooks": {
-  "Stop":         [{ "hooks": [{ "type": "command", "command": "node \"C:/ruta/a/clawd-buddy/hooks/clawd-hook.js\"", "timeout": 5 }] }],
-  "Notification": [{ "hooks": [{ "type": "command", "command": "node \"C:/ruta/a/clawd-buddy/hooks/clawd-hook.js\"", "timeout": 5 }] }]
+  "Stop":         [{ "hooks": [{ "type": "command", "command": "node \"C:/ruta/a/Deskling/hooks/clawd-hook.js\"", "timeout": 5 }] }],
+  "Notification": [{ "hooks": [{ "type": "command", "command": "node \"C:/ruta/a/Deskling/hooks/clawd-hook.js\"", "timeout": 5 }] }]
 }
 ```
 

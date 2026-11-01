@@ -28,7 +28,7 @@ const { startSensors, ocr } = require('./sensors');
 const ROOT = path.join(__dirname, '..');
 // Dónde van los archivos que Clawd escribe (config, .env, logs):
 //   - con `npm start` → la carpeta del proyecto, como siempre;
-//   - instalado (.exe) → %APPDATA%\Clawd Buddy, porque el programa instalado es
+//   - instalado (.exe) → %APPDATA%\Deskling, porque el programa instalado es
 //     de solo lectura. El config.json del proyecto queda como "valores por defecto".
 const DATA = app.isPackaged ? app.getPath('userData') : ROOT;
 const CONFIG_PATH = path.join(DATA, 'config.json');
@@ -251,9 +251,9 @@ function goodbye() {
  * carpeta del proyecto, que es lo mismo que hace `npm start`.
  */
 function loginItemOpts() {
-  // entre comillas: las rutas tienen espacios ("Clawd Buddy.exe", "probar claude") y Windows las cortaría ahí
-  if (app.isPackaged) return { name: 'ClawdBuddy', path: `"${process.execPath}"` };
-  return { name: 'ClawdBuddy', path: `"${process.execPath}"`, args: [`"${ROOT}"`] };
+  // entre comillas: las rutas pueden tener espacios y Windows las cortaría ahí
+  if (app.isPackaged) return { name: 'Deskling', path: `"${process.execPath}"` };
+  return { name: 'Deskling', path: `"${process.execPath}"`, args: [`"${ROOT}"`] };
 }
 function applyAutoStart(force = false) {
   app.setLoginItemSettings({ openAtLogin: !!config.autoStart, ...loginItemOpts() });
@@ -268,7 +268,7 @@ function applyAutoStart(force = false) {
  * aunque esté activada. La tarea es solo de tu usuario y no pide administrador.
  * Si las dos cosas abren Clawd, el segundo se cierra solo (una sola instancia).
  */
-const TASK = 'ClawdBuddy';
+const TASK = 'Deskling';
 function logonTask(on) {
   const opts = { windowsHide: true };
   if (!on) return execFile('schtasks.exe', ['/delete', '/tn', TASK, '/f'], opts, () => {});
@@ -301,11 +301,11 @@ function logonTask(on) {
  */
 const STARTUP_APPROVED = String.raw`HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`;
 function approveStartup(force) {
-  const enable = () => execFile('reg.exe', ['add', STARTUP_APPROVED, '/v', 'ClawdBuddy', '/t', 'REG_BINARY', '/d', '020000000000000000000000', '/f'],
+  const enable = () => execFile('reg.exe', ['add', STARTUP_APPROVED, '/v', 'Deskling', '/t', 'REG_BINARY', '/d', '020000000000000000000000', '/f'],
     { windowsHide: true }, (err) => debug('[arranque] marca de activado', err ? `falló: ${err.message}` : 'ok'));
   if (force) return enable();
   // reg query termina con error si el valor no existe
-  execFile('reg.exe', ['query', STARTUP_APPROVED, '/v', 'ClawdBuddy'], { windowsHide: true }, (err) => { if (err) enable(); });
+  execFile('reg.exe', ['query', STARTUP_APPROVED, '/v', 'Deskling'], { windowsHide: true }, (err) => { if (err) enable(); });
 }
 
 function setAutoStart(on) {
@@ -344,7 +344,7 @@ function buildMenu() {
 
 function createTray() {
   tray = new Tray(trayIcon());
-  tray.setToolTip('Clawd Buddy');
+  tray.setToolTip('Deskling');
   tray.on('click', () => win.isVisible() ? win.hide() : win.show());
   tray.on('right-click', () => tray.popUpContextMenu(buildMenu()));
 }
@@ -521,7 +521,7 @@ function wireSensors() {
   // Cambió la ventana activa.
   sensors.on('window', ({ process: proc, title }) => {
     // Ignoramos nuestra propia ventana (al hacer clic en Clawd).
-    if (/^(electron|clawd buddy)$/i.test(proc) || title === 'Clawd Buddy') return; // instalado, el proceso se llama "Clawd Buddy"
+    if (/^(electron|deskling)$/i.test(proc) || title === 'Deskling') return; // instalado, el proceso se llama "Deskling"
     const priv = isPrivate(proc, title);
     const clean = priv ? '[app privada]' : guard.check('ventana', title).clean;
     // ¿Fuiste a mirar a Claude? Entonces ya no hace falta insistir.
