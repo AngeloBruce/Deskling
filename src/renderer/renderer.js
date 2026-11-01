@@ -394,6 +394,25 @@ function maybeDance() {
   danceTimer = setTimeout(maybeDance, 25000 + Math.random() * 35000);
 }
 
+// -----------------------------------------------------------------------------
+// Laptop: de vez en cuando (cada 1–3 min), si está tranquilo, saca la laptop y
+// teclea un rato. Con el menú abierto o el contador del foco no, porque ocupan ese lugar.
+// -----------------------------------------------------------------------------
+const LAPTOP_MS = 9000; // igual que las animaciones de .working en style.css
+
+function maybeLaptop() {
+  const free = document.getElementById('menu').classList.contains('hidden')
+    && document.getElementById('focus-badge').classList.contains('hidden');
+  if (clawdEl.className === 'idle' && free) {
+    setMood('working');
+    setTimeout(() => {
+      if (clawdEl.classList.contains('working')) setMood(baseMood);
+    }, LAPTOP_MS);
+  }
+  setTimeout(maybeLaptop, 60000 + Math.random() * 120000);
+}
+setTimeout(maybeLaptop, 30000);
+
 /** Una notita musical que sale de la cabeza de Clawd y sube flotando. */
 let noteSide = 1;
 function spawnNote() {

@@ -214,6 +214,36 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
   100% { transform: translate(var(--dx), -40px) rotate(0deg); opacity: 0; }
 }
 
+/* ---------- Laptop: la saca de atrás, la abre, teclea un rato y la guarda ---------- */
+/* Dura 9 s (LAPTOP_MS en renderer.js). El 8 % del principio y del final es sacarla y
+   guardarla; la tapa cambia de dibujo de golpe, como en un sprite. */
+#clawd .laptop { display: none; }
+#clawd.working .laptop { display: inline; animation: laptop-slide 9s both; }
+#clawd .laptop rect { fill: #9a9aa3; }
+#clawd .laptop .lap-base { fill: #6f6f78; }
+#clawd .laptop .lap-keys { fill: #b9b9c2; animation: pulse .4s steps(1) infinite; }
+#clawd .laptop .lap-glow { fill: #8fd3ff; animation: pulse 1.3s steps(1) infinite; }
+#clawd.working .lid { animation: 9s step-end both; }
+#clawd.working .lid-closed { animation-name: lid-closed; }
+#clawd.working .lid-half   { animation-name: lid-half; }
+#clawd.working .lid-open   { animation-name: lid-open; }
+@keyframes laptop-slide {
+  0%        { transform: translateX(14px); opacity: 0; animation-timing-function: steps(5); }
+  1%        { opacity: 1; animation-timing-function: steps(5); }
+  8%, 92%   { transform: none; opacity: 1; animation-timing-function: steps(5); }
+  99%       { opacity: 1; }
+  100%      { transform: translateX(14px); opacity: 0; }
+}
+@keyframes lid-closed { 0% { opacity: 1; } 9% { opacity: 0; } 91% { opacity: 1; } }
+@keyframes lid-half   { 0% { opacity: 0; } 9% { opacity: 1; } 13% { opacity: 0; } 87% { opacity: 1; } 91% { opacity: 0; } }
+@keyframes lid-open   { 0% { opacity: 0; } 13% { opacity: 1; } 87% { opacity: 0; } }
+/* mira la pantalla y teclea con el bracito que le queda cerca */
+#clawd.working .eyes { translate: -1px 1px; }
+#clawd.working .body rect:nth-child(2) { animation: type .3s steps(1) infinite; }
+@keyframes type { 50% { transform: translateY(2px); } }
+/* con Clawd a la izquierda de la ventana la laptop se cortaría: lo damos vuelta */
+body[data-side="left"] #clawd.working svg { transform: scaleX(-1); }
+
 /* ---------- Despedida (al salir) ---------- */
 /* 0–55 %: saluda con el bracito derecho · 55–70 %: saltito · 70–100 %: se encoge */
 #clawd.bye { animation: bye 1.6s ease-in forwards; }
