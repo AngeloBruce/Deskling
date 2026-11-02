@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Ajustes de Deskling</title>
+  <!-- Solo recursos locales, igual que la ventana de Clawd -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <nav id="tabs" role="tablist" aria-label="Secciones">
+    <button role="tab" data-tab="perfil" aria-selected="true">Perfil</button>
+    <button role="tab" data-tab="apariencia">Apariencia</button>
+    <button role="tab" data-tab="comentarios">Comentarios</button>
+    <button role="tab" data-tab="foco">Foco y bienestar</button>
+    <button role="tab" data-tab="privacidad">Privacidad</button>
+    <button role="tab" data-tab="general">General</button>
+  </nav>
+
+  <main>
+    <!-- data-path dice qué opción de config.json edita cada campo (lo usa settings.js) -->
+    <section id="perfil" role="tabpanel">
+      <h2>Perfil</h2>
+      <label class="field">Tu nombre
+        <input type="text" data-path="userName" maxlength="40" placeholder="Opcional">
+        <small>Se envía a tu proveedor de IA para que pueda llamarte así. Si lo dejas vacío, no se envía nada.</small>
+      </label>
+      <label class="field">Nombre de la mascota
+        <input type="text" data-path="petName" maxlength="20">
+      </label>
+      <label class="field">Personalidad
+        <select data-path="personalityPreset" id="preset"></select>
+        <small id="preset-hint"></small>
+      </label>
+      <label class="field" id="custom-field">Tu personalidad
+        <textarea data-path="personality" rows="8" maxlength="4000" placeholder="Por ejemplo: Hablás como un pirata y todo te parece una aventura."></textarea>
+      </label>
+    </section>
+
+    <section id="apariencia" role="tabpanel" hidden>
+      <h2>Apariencia</h2>
+      <p class="note">Los cambios se ven en la mascota al momento. Se quedan cuando tocas Guardar.</p>
+      <div class="field"><span id="skin-label">Color</span>
+        <div class="chips" data-path="appearance.skin" data-type="choice" role="radiogroup" aria-labelledby="skin-label"></div>
+      </div>
+      <div class="field"><span id="acc-label">Accesorio</span>
+        <div class="chips" data-path="appearance.accessory" data-type="choice" role="radiogroup" aria-labelledby="acc-label"></div>
+      </div>
+      <div class="field"><span id="size-label">Tamaño</span>
+        <div class="chips" data-path="appearance.size" data-type="choice" role="radiogroup" aria-labelledby="size-label"></div>
+      </div>
+    </section>
+
+    <section id="comentarios" role="tabpanel" hidden>
+      <h2>Comentarios</h2>
+      <label class="field">Proveedor de IA
+        <select data-path="provider" id="provider"></select>
+        <small id="provider-key"></small>
+      </label>
+      <div class="grid">
+        <label class="field">Espera entre comentarios (s)<input type="number" data-path="cooldownSeconds"></label>
+        <label class="field">Espera entre comentarios de música (s)<input type="number" data-path="musicCooldownSeconds"></label>
+        <label class="field">Tiempo en una app antes de comentarla (s)<input type="number" data-path="workCommentDelaySeconds"></label>
+        <label class="field">Comentario general cada (min)<input type="number" data-path="checkinMinutes"></label>
+        <label class="field">Duración del globito (s)<input type="number" data-path="bubbleSeconds"></label>
+      </div>
+      <label class="check"><input type="checkbox" data-path="sound"> Sonido en los avisos</label>
+    </section>
+
+    <section id="foco" role="tabpanel" hidden>
+      <h2>Modo foco</h2>
+      <div class="grid">
+        <label class="field">Foco (min)<input type="number" data-path="focus.workMinutes"></label>
+        <label class="field">Descanso (min)<input type="number" data-path="focus.breakMinutes"></label>
+        <label class="field">Descanso largo (min)<input type="number" data-path="focus.longBreakMinutes"></label>
+        <label class="field">Focos antes del descanso largo<input type="number" data-path="focus.cyclesBeforeLongBreak"></label>
+      </div>
+      <label class="field">Apps que pueden avisar durante el foco
+        <textarea data-path="focus.priorityApps" data-type="list" rows="3"></textarea>
+        <small>Una por línea.</small>
+      </label>
+      <h2>Distracciones</h2>
+      <label class="field">Palabras que marcan una distracción
+        <textarea data-path="distractions.keywords" data-type="list" rows="4"></textarea>
+        <small>Una por línea.</small>
+      </label>
+      <div class="grid">
+        <label class="field">Aviso en foco a los (s)<input type="number" data-path="distractions.focusSeconds"></label>
+        <label class="field">Aviso fuera del foco a los (min)<input type="number" data-path="distractions.minutes"></label>
+      </div>
+      <h2>Bienestar</h2>
+      <label class="field">Consejo cada (min)<input type="number" data-path="wellness.everyMinutes"></label>
+      <label class="field">Consejos
+        <textarea data-path="wellness.tips" data-type="list" rows="5"></textarea>
+        <small>Uno por línea.</small>
+      </label>
+    </section>
+
+    <section id="privacidad" role="tabpanel" hidden>
+      <h2>Privacidad</h2>
+      <label class="check"><input type="checkbox" data-path="screenCapture"> Mirar mi pantalla de vez en cuando</label>
+      <p class="note">La captura se envía a tu proveedor de IA solo si el filtro local no encuentra datos sensibles en ella.</p>
+      <label class="field">Apps privadas
+        <textarea data-path="privateApps" data-type="list" rows="7"></textarea>
+        <small>Una por línea. Si la palabra aparece en la app o en el título, la mascota no mira ni envía nada.</small>
+      </label>
+      <label class="field">Apps cuyas notificaciones se ignoran
+        <textarea data-path="ignoredNotificationApps" data-type="list" rows="3"></textarea>
+        <small>Una por línea.</small>
+      </label>
+      <label class="field">Emojis que nunca debe usar
+        <input type="text" data-path="avoidEmojis" data-type="words">
+        <small>Separados por espacios.</small>
+      </label>
+    </section>
+
+    <section id="general" role="tabpanel" hidden>
+      <h2>General</h2>
+      <label class="check"><input type="checkbox" data-path="autoStart"> Abrir al iniciar Windows</label>
+      <label class="check"><input type="checkbox" data-path="claudeCode.enabled"> Avisos de Claude Code</label>
+      <label class="field">Se enoja si no vas a mirar en (min)<input type="number" data-path="claudeCode.nagMinutes"></label>
+      <h2>Resumen del día</h2>
+      <label class="check"><input type="checkbox" data-path="summary.enabled"> Mostrarlo automáticamente</label>
+      <div class="grid">
+        <label class="field">A esta hora (0-23)<input type="number" data-path="summary.hour"></label>
+        <label class="field">O desde esta hora si te vas (0-23)<input type="number" data-path="summary.afterHour"></label>
+        <label class="field">Minutos sin actividad para contar que te fuiste<input type="number" data-path="summary.idleMinutes"></label>
+        <label class="field">Uso mínimo del día (min)<input type="number" data-path="summary.minActiveMinutes"></label>
+      </div>
+      <h2>Avanzado</h2>
+      <button type="button" id="open-json" class="link">Abrir config.json</button>
+      <p class="note">La API key no se edita aquí: sigue en el archivo .env.</p>
+    </section>
+  </main>
+
+  <footer>
+    <span id="status" role="status"></span>
+    <button type="button" id="cancel">Cancelar</button>
+    <button type="button" id="save" class="primary">Guardar</button>
+  </footer>
+
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -168,6 +168,7 @@ function setPlaying(playing) {
 
 /** Main nos pide abrir el menú y nos dice el estado actual. */
 window.clawd.onMenuOpen(({ paused, screenCapture, autoStart, focusing, music }) => {
+  menu.querySelector('[data-action="quit"] span').textContent = `Chau, ${petName}`;
   const row = menu.querySelector('.music-row');
   row.classList.toggle('hidden', !music);
   if (music) {
@@ -175,7 +176,7 @@ window.clawd.onMenuOpen(({ paused, screenCapture, autoStart, focusing, music }) 
     setPlaying(music.playing);
   }
   const pause = menu.querySelector('[data-action="pause"]');
-  pause.querySelector('span').textContent = paused ? 'Despertar a Clawd' : 'Dormir un rato';
+  pause.querySelector('span').textContent = paused ? `Despertar a ${petName}` : 'Dormir un rato';
   setIcon(pause, paused ? 'sun' : 'moon');
   const focus = menu.querySelector('[data-action="focus"]');
   focus.querySelector('span').textContent = focusing ? 'Terminar foco' : 'Modo foco';
@@ -360,6 +361,24 @@ function blop() {
 // a Clawd y al globito según body[data-side].
 window.clawd.onSide((side) => { document.body.dataset.side = side; });
 
+// Skin, accesorio, tamaño y nombre. Los colores y medidas son variables de style.css.
+// El accesorio va en un atributo porque setMood reemplaza todas las clases de #clawd.
+let petName = 'Clawd';
+window.clawd.onAppearance(({ colors, accessory, width, height, petName: name }) => {
+  const vars = {
+    '--clawd': colors.main,
+    '--clawd-dark': colors.dark,
+    '--clawd-shade': colors.shade,
+    '--clawd-arm': colors.arm,
+    '--clawd-bright': colors.bright,
+    '--cw': `${width}px`,
+    '--ch': `${height}px`,
+  };
+  for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty(k, v);
+  clawdEl.dataset.accessory = accessory;
+  petName = name;
+});
+
 // -----------------------------------------------------------------------------
 // Baile: mientras suena Spotify, de vez en cuando (cada 25–60 s) se balancea
 // unos segundos con cara feliz. Si está hablando o pensando, no baila.
@@ -420,7 +439,7 @@ function spawnNote() {
   el.className = 'note' + (Math.random() < 0.35 ? ' light' : ''); // algunas blanquitas
   el.innerHTML = pixelIcon(Math.random() < 0.5 ? 'note' : 'notes');
   noteSide = -noteSide; // una a la izquierda, otra a la derecha
-  el.style.left = `${noteSide > 0 ? 38 + Math.random() * 10 : 6 + Math.random() * 10}px`;
+  el.style.left = `${noteSide > 0 ? 63 + Math.random() * 17 : 10 + Math.random() * 17}%`; // en %: sirve para cualquier tamaño
   el.style.setProperty('--dx', `${noteSide * (4 + Math.random() * 6)}px`);
   el.addEventListener('animationend', () => el.remove());
   clawdEl.appendChild(el);

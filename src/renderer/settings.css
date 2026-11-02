@@ -1,0 +1,131 @@
+/* =============================================================================
+   settings.css — La ventana de ajustes. Misma estética que el menú de Clawd:
+   panel oscuro, acento naranja y esquinas casi rectas.
+   ============================================================================= */
+
+:root {
+  color-scheme: dark; /* barras de desplazamiento y listas oscuras */
+  --bg: #1c1816;
+  --panel: #26211e;
+  --line: #4a3f39;
+  --fg: #fdf3ec;
+  --muted: #c9b3a6;
+  --accent: #d97757;
+  --accent-soft: rgba(217, 119, 87, .22);
+  --danger: #f08a63;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; } /* si no, .field { display: block } le gana */
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  display: grid;
+  grid-template: "tabs main" 1fr "tabs foot" auto / 168px 1fr;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
+}
+
+/* ---------- Pestañas ---------- */
+#tabs {
+  grid-area: tabs;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  background: var(--panel);
+  border-right: 2px solid var(--line);
+}
+#tabs button {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+#tabs button:hover { color: var(--fg); background: var(--accent-soft); }
+#tabs button[aria-selected="true"] { color: var(--fg); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+
+/* ---------- Contenido ---------- */
+main { grid-area: main; overflow-y: auto; padding: 8px 20px 20px; }
+h2 { margin: 16px 0 10px; font-size: 15px; color: var(--accent); }
+.note { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; font-weight: 400; }
+
+.field { display: block; margin-bottom: 14px; font-weight: 600; }
+.field input, .field select, .field textarea {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 2px solid var(--line);
+  border-radius: 3px;
+  font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
+}
+.field textarea { resize: vertical; }
+:is(input, select, textarea, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0 14px; align-items: end; }
+
+.check { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 600; cursor: pointer; }
+.check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+
+/* Opciones de apariencia: botoncitos, el elegido con borde naranja */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chips button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 5px 12px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 2px solid var(--line);
+  border-radius: 3px;
+  font: inherit;
+  cursor: pointer;
+}
+.chips button:hover { border-color: var(--muted); }
+.chips button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.chips i { width: 14px; height: 14px; }
+
+.link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* ---------- Pie ---------- */
+footer {
+  grid-area: foot;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--panel);
+  border-top: 2px solid var(--line);
+}
+#status { flex: 1; color: var(--muted); font-size: 13px; }
+#status.error { color: var(--danger); }
+footer button {
+  min-height: 32px;
+  padding: 5px 16px;
+  background: transparent;
+  color: var(--fg);
+  border: 2px solid var(--line);
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+footer button:hover { border-color: var(--muted); }
+footer .primary { background: var(--accent); border-color: var(--accent); color: #1c1816; }
+footer .primary:hover { background: #e58a6b; border-color: #e58a6b; }
+
+@media (prefers-reduced-motion: no-preference) {
+  #tabs button, .chips button, footer button { transition: background-color .12s, border-color .12s; }
+}

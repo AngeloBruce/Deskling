@@ -20,6 +20,8 @@ const http = require('http');
 const os = require('os');
 const path = require('path');
 const guard = require('./guard');
+const settings = require('./settings');
+const presets = require('./presets');
 const { Brain } = require('./brain');
 const { Pomodoro } = require('./focus');
 const { DayStats } = require('./stats');
@@ -27,11 +29,13 @@ const { startSensors, ocr } = require('./sensors');
 
 const ROOT = path.join(__dirname, '..');
 // Dónde van los archivos que Clawd escribe (config, .env, logs):
-//   - con `npm start` → la carpeta del proyecto, como siempre;
+//   - con `npm start` → la carpeta del proyecto, y tus ajustes en config.local.json
+//     (el repo no lo sube: el config.json del proyecto NUNCA se escribe);
 //   - instalado (.exe) → %APPDATA%\Deskling, porque el programa instalado es
 //     de solo lectura. El config.json del proyecto queda como "valores por defecto".
-const DATA = app.isPackaged ? app.getPath('userData') : ROOT;
-const CONFIG_PATH = path.join(DATA, 'config.json');
+//   - con la variable CLAWD_DATA_DIR → esa carpeta (para probar sin tocar tus datos).
+const DATA = process.env.CLAWD_DATA_DIR || (app.isPackaged ? app.getPath('userData') : ROOT);
+const CONFIG_PATH = path.join(DATA, DATA === ROOT ? 'config.local.json' : 'config.json');
 const LOGS = path.join(DATA, 'logs');
 
 // ---------------------------------------------------------------------------
@@ -54,22 +58,30 @@ function loadEnv() {
  * Lee la config: los valores por defecto (config.json del proyecto) + lo que
  * cambiaste vos. Así, si una versión nueva agrega opciones, no se rompe.
  */
-let configReadError = null; // para el log de arranque
+const defaults = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
+let configRead = { status: 'missing' }; // para el log de arranque y el aviso si el archivo está roto
 function loadConfig() {
-  const defaults = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
-  if (CONFIG_PATH === path.join(ROOT, 'config.json')) return defaults;
-  let mine = {};
-  try { mine = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch (e) { configReadError = e.code || e.message; /* primera vez: no hay */ }
-  const merged = { ...defaults, ...mine };
-  fs.mkdirSync(DATA, { recursive: true });
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2) + '\n'); // así lo podés abrir y editar
+  configRead = settings.readUserConfig(CONFIG_PATH);
+  const merged = settings.mergeConfig(defaults, settings.migrate(configRead.config));
+  // Instalado, dejamos el archivo completo para que lo puedas abrir y editar.
+  // Si estaba roto NO se escribe: sigue ahí hasta que guardes algo (y ya tiene su copia).
+  if (DATA !== ROOT && configRead.status !== 'corrupt') settings.writeConfig(CONFIG_PATH, merged);
   return merged;
 }
 const config = loadConfig();
 
-/** Guarda en config.json lo que se cambia desde el menú (ej: captura on/off). */
+/**
+ * Guarda lo que se cambia desde el menú o la ventana de ajustes. Con `npm start`
+ * guarda solo las diferencias, así un valor nuevo del config.json del proyecto te llega igual.
+ */
 function saveConfig() {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
+  try {
+    settings.writeConfig(CONFIG_PATH, DATA === ROOT ? settings.diffConfig(defaults, config) : config);
+    return true;
+  } catch (e) {
+    errorLog(`no se pudo guardar la config: ${e.code || e.message}`);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +110,10 @@ let tray = null;
 let brain = null;
 let sensors = null;
 let workTimer = null;
+let settingsWin = null;
+let checkinTimer = null;
+let wellnessTimer = null;
+let claudeServer = null;
 
 /**
  * Log de depuración: con la variable CLAWD_DEBUG=1 escribe en logs/debug.log
@@ -133,16 +149,22 @@ function mood(m) {
 
 // Medidas de la ventana. Clawd va en una esquina de abajo de la ventana
 // (derecha o izquierda según `state.side`) y el globito crece hacia el otro lado.
-const WIN_W = 260, WIN_H = 272; // alto: lo justo para que entre el menú (y la tarjeta del resumen)
-const CLAWD_W = 60, CLAWD_PAD = 8; // ancho del sprite y margen al borde (igual que style.css)
+// El resto de la ventana es lugar para el globito y el menú: crece junto con Clawd.
+const CLAWD_PAD = 8; // margen al borde (igual que style.css)
+const MIN_WIN_H = 272; // lo justo para que entre el menú, aunque Clawd sea chico
+function layoutFor(sizeName) {
+  const size = presets.SIZES[sizeName] || presets.SIZES.normal;
+  return { clawdW: size.w, clawdH: size.h, winW: size.w + 200, winH: Math.max(MIN_WIN_H, size.h + 223) };
+}
+let layout = layoutFor(config.appearance?.size);
 
 function createWindow() {
   const { workArea } = screen.getPrimaryDisplay();
   win = new BrowserWindow({
-    width: WIN_W,
-    height: WIN_H,
-    x: workArea.x + workArea.width - WIN_W - 12,   // esquina inferior derecha
-    y: workArea.y + workArea.height - WIN_H - 4,
+    width: layout.winW,
+    height: layout.winH,
+    x: workArea.x + workArea.width - layout.winW - 12,   // esquina inferior derecha
+    y: workArea.y + workArea.height - layout.winH - 4,
     frame: false,          // sin barra de título
     transparent: true,     // fondo invisible
     resizable: false,
@@ -172,10 +194,10 @@ function createWindow() {
  */
 function updateSide() {
   const [x, y] = win.getPosition();
-  const offsetRight = WIN_W - CLAWD_PAD - CLAWD_W; // dónde está Clawd dentro de la ventana si está a la derecha
+  const offsetRight = layout.winW - CLAWD_PAD - layout.clawdW; // dónde está Clawd dentro de la ventana si está a la derecha
   const clawdX = state.side === 'right' ? x + offsetRight : x + CLAWD_PAD; // borde izquierdo de Clawd en pantalla
   const { workArea } = screen.getDisplayNearestPoint({ x: clawdX, y });
-  const side = clawdX + CLAWD_W / 2 > workArea.x + workArea.width / 2 ? 'right' : 'left';
+  const side = clawdX + layout.clawdW / 2 > workArea.x + workArea.width / 2 ? 'right' : 'left';
   if (side !== state.side) {
     state.side = side;
     win.setPosition(side === 'right' ? clawdX - offsetRight : clawdX - CLAWD_PAD, y);
@@ -183,11 +205,55 @@ function updateSide() {
   win.webContents.send('side', state.side);
 }
 
+/** Le manda a la ventana cómo tiene que verse Clawd (`look` = appearance, guardada o de prueba). */
+function sendAppearance(look = config.appearance) {
+  const size = presets.SIZES[look?.size] || presets.SIZES.normal;
+  win?.webContents.send('appearance', {
+    colors: presets.SKINS[look?.skin] || presets.SKINS.naranja,
+    accessory: presets.ACCESSORIES[look?.accessory] ? look.accessory : 'ninguno',
+    width: size.w,
+    height: size.h,
+    petName: config.petName,
+  });
+}
+
+/**
+ * Cambia el tamaño de la ventana junto con el de Clawd, dejando fijas sus patitas
+ * y su borde exterior: crece hacia adentro de la pantalla, no "salta".
+ */
+function resizeClawd(sizeName) {
+  const next = layoutFor(sizeName);
+  if (next.winW === layout.winW && next.winH === layout.winH) return;
+  // medidas reales, no las pedidas: con escalas como 125 % o 150 % Windows las redondea
+  // y, si no, Clawd se correría unos píxeles en cada cambio
+  const now = win.getBounds();
+  const { workArea } = screen.getDisplayNearestPoint({ x: now.x, y: now.y });
+  const bounds = {
+    x: state.side === 'right' ? now.x + now.width - next.winW : now.x,
+    y: Math.max(workArea.y, now.y + now.height - next.winH),
+    width: next.winW,
+    height: next.winH,
+  };
+  layout = next;
+  win.setBounds(bounds);
+  updateSide();
+}
+
+/** Muestra una apariencia sin guardarla (vista previa) o vuelve a la guardada. */
+function previewAppearance(look = config.appearance) {
+  if (!win || win.isDestroyed()) return; // la app se está cerrando
+  sendAppearance(look);
+  resizeClawd(look?.size);
+  tray?.setImage(trayIcon(look?.skin));
+}
+
 /**
  * Ícono de la bandeja: un mini Clawd de 16x16 dibujado píxel a píxel
- * (así no hace falta un archivo .png/.ico).
+ * (así no hace falta un archivo .png/.ico). Lleva el color de la skin.
  */
-function trayIcon() {
+function trayIcon(skinName = config.appearance?.skin) {
+  const color = (presets.SKINS[skinName] || presets.SKINS.naranja).main;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
   const rows = [
     '................',
     '................',
@@ -210,7 +276,7 @@ function trayIcon() {
   rows.forEach((row, y) => [...row].forEach((c, x) => {
     if (c !== '#') return;
     const i = (y * 16 + x) * 4;
-    buf[i] = 0x57; buf[i + 1] = 0x77; buf[i + 2] = 0xd9; buf[i + 3] = 0xff; // #d97757
+    buf[i] = b; buf[i + 1] = g; buf[i + 2] = r; buf[i + 3] = 0xff;
   }));
   return nativeImage.createFromBitmap(buf, { width: 16, height: 16 });
 }
@@ -230,7 +296,7 @@ const MENU_ACTIONS = {
   autostart: () => setAutoStart(!config.autoStart),
   poke: () => speak('poke', { force: true }),
   guardlog: () => shell.openPath(guardLogPath()),
-  config: () => shell.openPath(CONFIG_PATH),
+  config: () => openSettings(),
   quit: () => goodbye(),
 };
 
@@ -326,7 +392,7 @@ function setCapture(on) {
 /** Menú nativo de Windows: solo para el ícono de la bandeja. */
 function buildMenu() {
   return Menu.buildFromTemplate([
-    { label: state.paused ? '▶ Despertar a Clawd' : '⏸ Pausar (dormir)', click: MENU_ACTIONS.pause },
+    { label: state.paused ? `▶ Despertar a ${config.petName}` : '⏸ Pausar (dormir)', click: MENU_ACTIONS.pause },
     { label: 'Ver mi pantalla (captura)', type: 'checkbox', checked: config.screenCapture, click: MENU_ACTIONS.capture },
     { label: 'Arrancar con Windows', type: 'checkbox', checked: !!config.autoStart, click: MENU_ACTIONS.autostart },
     { label: '💬 Opiná ahora', click: MENU_ACTIONS.poke },
@@ -336,7 +402,7 @@ function buildMenu() {
     { label: '📊 Terminé por hoy', click: MENU_ACTIONS.summary },
     { type: 'separator' },
     { label: 'Ver registro de seguridad', click: MENU_ACTIONS.guardlog },
-    { label: 'Abrir config.json', click: MENU_ACTIONS.config },
+    { label: '⚙ Ajustes', click: MENU_ACTIONS.config },
     { type: 'separator' },
     { label: 'Salir', click: MENU_ACTIONS.quit },
   ]);
@@ -347,6 +413,92 @@ function createTray() {
   tray.setToolTip('Deskling');
   tray.on('click', () => win.isVisible() ? win.hide() : win.show());
   tray.on('right-click', () => tray.popUpContextMenu(buildMenu()));
+}
+
+// ---------------------------------------------------------------------------
+// Ventana de ajustes
+// ---------------------------------------------------------------------------
+
+function openSettings() {
+  if (settingsWin) { settingsWin.show(); settingsWin.focus(); return; }
+  settingsWin = new BrowserWindow({
+    width: 620,
+    height: 640,
+    minWidth: 520,
+    minHeight: 480,
+    title: 'Ajustes de Deskling',
+    backgroundColor: '#1c1816',
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'settings-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  settingsWin.removeMenu();
+  // esta ventana solo muestra sus archivos: no navega a ningún lado ni abre otras
+  settingsWin.webContents.on('will-navigate', (e) => e.preventDefault());
+  settingsWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  settingsWin.once('ready-to-show', () => settingsWin.show());
+  settingsWin.on('closed', () => {
+    settingsWin = null;
+    previewAppearance(); // si quedó una vista previa sin guardar, se descarta
+  });
+  settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
+}
+
+/** Lo que necesita la ventana de ajustes. De la key solo va si existe, nunca su valor. */
+function settingsData() {
+  const entries = (catalog) => Object.entries(catalog).map(([id, v]) => ({ id, ...v }));
+  return {
+    values: settings.editableView(config),
+    limits: settings.limits(),
+    catalog: {
+      personalities: entries(presets.PERSONALITIES).map(({ id, label, hint }) => ({ id, label, hint })),
+      skins: entries(presets.SKINS).map(({ id, label, main }) => ({ id, label, color: main })),
+      accessories: entries(presets.ACCESSORIES),
+      sizes: entries(presets.SIZES),
+      providers: Object.entries(config.providers).map(([id, p]) => ({ id, hasKey: !!process.env[p.envKey] })),
+    },
+  };
+}
+
+function wireSettings() {
+  const fromSettings = (e) => settingsWin && e.sender === settingsWin.webContents;
+  ipcMain.handle('settings-get', (e) => (fromSettings(e) ? settingsData() : null));
+  ipcMain.on('settings-preview', (e, look) => {
+    if (!fromSettings(e)) return;
+    const clean = settings.sanitize({ appearance: look }).appearance;
+    previewAppearance({ ...config.appearance, ...clean });
+  });
+  ipcMain.handle('settings-save', (e, patch) => {
+    if (!fromSettings(e)) return { ok: false };
+    const prev = settings.mergeConfig({}, config);
+    Object.assign(config, settings.mergeConfig(config, settings.sanitize(patch, Object.keys(config.providers))));
+    const ok = saveConfig();
+    applyConfig(prev);
+    return { ok, data: settingsData() };
+  });
+  ipcMain.on('settings-open-json', (e) => {
+    if (!fromSettings(e)) return;
+    if (!fs.existsSync(CONFIG_PATH)) saveConfig(); // con `npm start` puede no existir todavía
+    shell.openPath(CONFIG_PATH);
+  });
+  ipcMain.on('settings-close', (e) => { if (fromSettings(e)) settingsWin.close(); });
+}
+
+/** Aplica lo guardado sin reiniciar. `prev` = cómo estaba la config antes de guardar. */
+function applyConfig(prev) {
+  if (brain) Object.assign(brain.opts, brainOpts());
+  if (prev.provider !== config.provider) state.warnedNoKey = false;
+  Object.assign(pomodoro.opts, config.focus); // vale desde la próxima fase; la actual sigue su cuenta
+  if (prev.checkinMinutes !== config.checkinMinutes || prev.wellness.everyMinutes !== config.wellness.everyMinutes) startTimers();
+  if (!!prev.autoStart !== !!config.autoStart) applyAutoStart(true);
+  if (prev.claudeCode.enabled !== config.claudeCode.enabled) {
+    if (config.claudeCode.enabled) startClaudeServer();
+    else stopClaudeServer();
+  }
+  previewAppearance();
 }
 
 function togglePause() {
@@ -495,7 +647,7 @@ async function speak(reason, { force = false } = {}) {
       if (force) {
         const msgs = {
           BAD_KEY: '🔑 La API key no funciona. Revisala en el .env.',
-          NO_MODEL: '🤖 El modelo de IA no está disponible. Cambialo en config.json.',
+          NO_MODEL: '🤖 El modelo de IA no está disponible. Cambialo en Ajustes → config.json.',
         };
         // TimeoutError = el servidor de la IA no contestó a tiempo (tu internet puede andar bien)
         // TypeError "fetch failed" = no se pudo ni conectar (ahí sí suele ser el internet)
@@ -597,6 +749,29 @@ function wireSensors() {
 // Una sola instancia: si ya está abierto, no abrimos otro Clawd.
 if (!app.requestSingleInstanceLock()) app.quit();
 
+/** Las opciones del cerebro según la config actual (al arrancar y al guardar ajustes). */
+function brainOpts() {
+  const p = config.providers[config.provider];
+  return {
+    baseURL: p.baseURL,
+    apiKey: process.env[p.envKey],
+    model: p.model,
+    visionModel: p.visionModel,
+    personality: presets.buildPersonality(config),
+    extra: p.extra,
+    visionExtra: p.visionExtra,
+    avoidEmojis: config.avoidEmojis,
+  };
+}
+
+/** Los comentarios y consejos periódicos. Se reinician si cambian sus minutos. */
+function startTimers() {
+  clearInterval(checkinTimer);
+  clearInterval(wellnessTimer);
+  checkinTimer = setInterval(() => speak('checkin'), config.checkinMinutes * 60 * 1000); // con captura si está activada
+  wellnessTimer = setInterval(wellnessTip, config.wellness.everyMinutes * 60 * 1000); // espalda, agua, ojos… sin usar la IA
+}
+
 app.whenReady().then(() => {
   const fromEnvFile = loadEnv();
   guard.setLogFile(guardLogPath());
@@ -606,21 +781,13 @@ app.whenReady().then(() => {
   // para comparar keys sin escribirlas. Sirve cuando la IA dice "la key no funciona".
   const key = process.env[p.envKey] || '';
   const huella = key ? require('crypto').createHash('sha256').update(key).digest('hex').slice(0, 8) : '-';
-  errorLog(`arranque: datos=${DATA} empaquetada=${app.isPackaged} config=${configReadError || 'ok'} carpeta=${process.cwd()}`);
+  errorLog(`arranque: datos=${DATA} empaquetada=${app.isPackaged} config=${configRead.status} carpeta=${process.cwd()}`);
   errorLog(`arranque: proveedor=${config.provider} key=${!key ? 'falta' : fromEnvFile.has(p.envKey) ? '.env' : 'variable de Windows'} huella=${huella}`);
-  brain = new Brain({
-    baseURL: p.baseURL,
-    apiKey: process.env[p.envKey],
-    model: p.model,
-    visionModel: p.visionModel,
-    personality: config.personality,
-    extra: p.extra,
-    visionExtra: p.visionExtra,
-    avoidEmojis: config.avoidEmojis,
-  });
+  brain = new Brain(brainOpts());
 
   createWindow();
   createTray();
+  wireSettings();
   // deja el registro de Windows igual que config.autoStart. Solo el instalado:
   // si no, cada `npm start` haría que Windows abra la copia del proyecto.
   if (app.isPackaged) applyAutoStart();
@@ -665,17 +832,20 @@ app.whenReady().then(() => {
 
   win.webContents.once('did-finish-load', () => {
     updateSide();
-    say('¡Hola! Soy Clawd 🦀 Te acompaño mientras trabajás.');
+    sendAppearance();
+    if (configRead.status === 'corrupt') {
+      errorLog(`config con errores: copia en ${path.basename(configRead.backup)}`);
+      say('⚠️ Tu config.json tiene un error: uso los valores por defecto y guardé una copia al lado.', { seconds: 30, face: 'squint' });
+    } else {
+      const hi = config.userName ? `¡Hola, ${config.userName}!` : '¡Hola!';
+      say(`${hi} Soy ${config.petName} 🦀 Te acompaño mientras trabajás.`);
+    }
     wireSensors();
   });
 
-  // Check-in periódico (con captura si está activada).
-  setInterval(() => speak('checkin'), config.checkinMinutes * 60 * 1000);
+  startTimers();
 
   if (config.claudeCode?.enabled) startClaudeServer();
-
-  // Recordatorios de bienestar (espalda, agua, ojos…), sin usar la IA.
-  setInterval(wellnessTip, config.wellness.everyMinutes * 60 * 1000);
 
   // ¿Te fuiste a YouTube/TikTok…? (ver checkDistraction)
   setInterval(checkDistraction, 10 * 1000);
@@ -727,7 +897,14 @@ function clearClaudePending() {
   state.claudePending = null;
 }
 
+function stopClaudeServer() {
+  clearClaudePending();
+  claudeServer?.close();
+  claudeServer = null;
+}
+
 function startClaudeServer() {
+  if (claudeServer) return;
   const server = http.createServer((req, res) => {
     if (req.method !== 'POST' || req.url !== '/claude') { res.writeHead(404).end(); return; }
     // Solo el hook de Claude Code, no páginas web: un navegador manda "Origin" y no
@@ -745,6 +922,7 @@ function startClaudeServer() {
   });
   server.on('error', (e) => debug('[claude] servidor:', e.message)); // ej: puerto ocupado
   server.listen(config.claudeCode.port, '127.0.0.1', () => debug('[claude] escuchando en', config.claudeCode.port));
+  claudeServer = server;
 }
 
 /** Llega un evento de Claude Code. */

@@ -4,13 +4,19 @@
    ============================================================================= */
 
 :root {
+  /* Colores y tamaño de la skin: renderer.js los pisa según src/presets.js */
   --clawd: #d97757;        /* naranja de Clawd */
   --clawd-dark: #b85c3e;   /* patitas, un tono más oscuro */
+  --clawd-shade: #c0684b;  /* sombra de la pose con laptop */
+  --clawd-arm: #c96c4d;    /* bracito de atrás en esa pose */
+  --clawd-bright: #f08a63; /* borde de los avisos */
+  --cw: 64px;              /* ancho de Clawd */
+  --ch: 52px;              /* alto de Clawd */
   --eye: #1f1a17;
   --cheek: #f2a7a0;        /* cachetes rosados */
   --bubble-bg: rgba(28, 24, 22, .92);  /* pastilla oscura, casi opaca */
   --bubble-fg: #fdf3ec;
-  --bubble-border: #d97757;            /* borde naranja como Clawd */
+  --bubble-border: var(--clawd);       /* borde del color de Clawd */
 }
 
 html, body {
@@ -56,6 +62,8 @@ body[data-side="left"] { align-items: flex-start; }
   transition: opacity .25s, transform .25s;
 }
 body[data-side="left"] #bubble { transform-origin: 0 100%; }
+/* el gorrito y la corona sobresalen por arriba: el globito sube para no pisarlos */
+#bubble:has(~ #clawd:is([data-accessory="gorrito"], [data-accessory="corona"])) { margin-bottom: calc(6px + var(--cw) / 10); }
 /* el texto va en un span aparte: máximo 4 líneas y si es más largo termina en "…"
    (el overflow va en el span para no cortar la colita del globito) */
 #bubble .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
@@ -64,29 +72,29 @@ body[data-side="left"] #bubble { transform-origin: 0 100%; }
 #bubble.card .text { display: block; white-space: pre-line; }
 #bubble.hidden { opacity: 0; transform: translateY(4px) scale(.9); pointer-events: none; }
 
-/* Colita que apunta a la cabeza de Clawd (centro de Clawd = 30px desde su borde).
+/* Colita que apunta a la cabeza de Clawd (el centro de Clawd = la mitad de --cw desde su borde).
    ::before es el borde naranja y ::after el relleno oscuro encima. */
 #bubble::before, #bubble::after {
   content: "";
   position: absolute;
-  right: 22px;
+  right: calc(var(--cw) / 2 - 8px);
   border-style: solid;
   border-color: transparent;
   border-bottom: 0;
 }
-#bubble::before { bottom: -9px; border-width: 8px 7px 0; border-top-color: var(--bubble-border); right: 21px; }
+#bubble::before { bottom: -9px; border-width: 8px 7px 0; border-top-color: var(--bubble-border); right: calc(var(--cw) / 2 - 9px); }
 #bubble::after  { bottom: -6px; border-width: 6px 6px 0; border-top-color: #1c1816; }
-body[data-side="left"] #bubble::before { right: auto; left: 21px; }
-body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
-#bubble.alert::before { border-top-color: #f08a63; }
+body[data-side="left"] #bubble::before { right: auto; left: calc(var(--cw) / 2 - 9px); }
+body[data-side="left"] #bubble::after  { right: auto; left: calc(var(--cw) / 2 - 8px); }
+#bubble.alert::before { border-top-color: var(--clawd-bright); }
 /* notificaciones: borde más brillante y un brillito alrededor */
-#bubble.alert { border-color: #f08a63; box-shadow: 0 0 0 3px rgba(217, 119, 87, .25), 0 3px 10px rgba(0, 0, 0, .35); }
+#bubble.alert { border-color: var(--clawd-bright); box-shadow: 0 0 0 3px color-mix(in srgb, var(--clawd) 25%, transparent), 0 3px 10px rgba(0, 0, 0, .35); }
 
 /* ---------- Clawd ---------- */
 #clawd {
   position: relative;
-  width: 60px;   /* tamaño de Clawd: cambiá esto para agrandarlo o achicarlo */
-  height: 49px;
+  width: var(--cw);   /* el tamaño se elige en Ajustes → Apariencia */
+  height: var(--ch);
   /* el arrastre lo hace renderer.js (así Clawd también recibe clics) */
   transform-origin: 50% 100%; /* el "blop" se aplasta desde las patitas */
   cursor: grab;
@@ -97,6 +105,13 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
 #clawd .eyes rect { fill: var(--eye); }
 #clawd .mouth rect { fill: var(--eye); }
 #clawd .cheeks rect { fill: var(--cheek); opacity: .8; }
+
+/* --- Accesorios: solo se ve el que dice data-accessory --- */
+#clawd .acc { display: none; }
+#clawd[data-accessory="gorrito"] .acc-gorrito,
+#clawd[data-accessory="lentes"]  .acc-lentes,
+#clawd[data-accessory="corona"]  .acc-corona,
+#clawd[data-accessory="mono"]    .acc-mono { display: inline; }
 
 /* --- Caras: solo se ve el grupo de ojos que dice data-face --- */
 #clawd .eyes { display: none; }
@@ -152,9 +167,10 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
 #clawd.sleeping .zzz { opacity: 1; animation: float 2s infinite; }
 #clawd.sleeping svg { animation: bob 4s ease-in-out infinite; }
 
-@keyframes bob    { 50% { transform: translateY(2px); } }
-@keyframes hop    { 50% { transform: translateY(-6px); } }
-@keyframes jump   { 50% { transform: translateY(-12px) rotate(-3deg); } }
+/* los saltos son proporcionales a Clawd: --cw / 30 son unos 2 px en tamaño normal */
+@keyframes bob    { 50% { transform: translateY(calc(var(--cw) / 30)); } }
+@keyframes hop    { 50% { transform: translateY(calc(var(--cw) / -10)); } }
+@keyframes jump   { 50% { transform: translateY(calc(var(--cw) / -5)) rotate(-3deg); } }
 @keyframes wiggle { to { transform: translateY(-1px); } }
 @keyframes blink  { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 @keyframes pulse  { 50% { opacity: .3; } }
@@ -224,9 +240,9 @@ body[data-side="left"] #bubble::after  { right: auto; left: 22px; }
 #clawd .laptop .lap-base { fill: #6f6f78; }
 #clawd .laptop .lap-top { fill: #b9b9c2; }
 #clawd .pose .fur { fill: var(--clawd); }
-#clawd .pose .shade { fill: #c0684b; }
+#clawd .pose .shade { fill: var(--clawd-shade); }
 #clawd .pose .arm-front { fill: var(--clawd); animation: type .3s steps(1) infinite; }
-#clawd .pose .arm-back { fill: #c96c4d; animation: type .3s steps(1) infinite .15s; }
+#clawd .pose .arm-back { fill: var(--clawd-arm); animation: type .3s steps(1) infinite .15s; }
 #clawd .pose .pose-eye { fill: var(--eye); transform-box: fill-box; transform-origin: center; animation: blink 4s infinite; }
 #clawd .pose .pose-leg { fill: var(--clawd-dark); }
 #clawd.working .lid { animation: 9s step-end both; }
@@ -271,7 +287,7 @@ body[data-side="left"] #clawd.working svg { transform: scaleX(-1); }
 #focus-badge {
   position: absolute;
   bottom: 8px;
-  right: 72px;
+  right: calc(var(--cw) + 12px);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -285,7 +301,7 @@ body[data-side="left"] #clawd.working svg { transform: scaleX(-1); }
   pointer-events: none;
   overflow: hidden;
 }
-body[data-side="left"] #focus-badge { right: auto; left: 72px; }
+body[data-side="left"] #focus-badge { right: auto; left: calc(var(--cw) + 12px); }
 #focus-badge.hidden { display: none; }
 #focus-badge i { display: block; width: 10px; height: 10px; }
 #focus-badge i svg { width: 100%; height: 100%; fill: #e2614a; }
@@ -306,7 +322,7 @@ body.menu-open #focus-badge { display: none; }
 #menu {
   position: absolute;
   bottom: 6px;
-  right: 74px;                 /* 8 (margen) + 60 (Clawd) + 6 de aire */
+  right: calc(var(--cw) + 14px); /* 8 (margen) + Clawd + 6 de aire */
   width: 166px;
   padding: 4px;
   background: var(--bubble-bg);
@@ -317,7 +333,7 @@ body.menu-open #focus-badge { display: none; }
   animation: menu-pop .22s steps(4) both;
   z-index: 10;
 }
-body[data-side="left"] #menu { right: auto; left: 74px; transform-origin: 0 100%; }
+body[data-side="left"] #menu { right: auto; left: calc(var(--cw) + 14px); transform-origin: 0 100%; }
 #menu.hidden { display: none; }
 /* si el menú está abierto, el globito se esconde para que no se encimen */
 body.menu-open #bubble { opacity: 0; pointer-events: none; }
@@ -357,7 +373,7 @@ body.menu-open #bubble { opacity: 0; pointer-events: none; }
 
 #menu button:hover, #menu button:focus-visible {
   outline: none;
-  background: rgba(217, 119, 87, .22);
+  background: color-mix(in srgb, var(--clawd) 22%, transparent);
 }
 #menu button:active { transform: translateY(1px); }
 
@@ -379,7 +395,7 @@ body.menu-open #bubble { opacity: 0; pointer-events: none; }
   margin: 0 2px 3px;
   padding: 2px;
   border-radius: 3px;
-  background: rgba(217, 119, 87, .1);
+  background: color-mix(in srgb, var(--clawd) 10%, transparent);
 }
 #menu .music-row.hidden { display: none; }
 #menu .music-row button { width: auto; padding: 3px 4px; flex: none; }
@@ -396,7 +412,7 @@ body.menu-open #bubble { opacity: 0; pointer-events: none; }
   text-overflow: ellipsis;
 }
 
-#menu hr { height: 2px; margin: 2px 4px; border: 0; background: rgba(217, 119, 87, .3); }
+#menu hr { height: 2px; margin: 2px 4px; border: 0; background: color-mix(in srgb, var(--clawd) 30%, transparent); }
 
 /* Interruptor pixel para "Ver pantalla": cajita con un cuadradito que se corre */
 #menu .switch {

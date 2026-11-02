@@ -25,12 +25,20 @@
       }
     }
   },
-  "personality": "Sos Clawd, un bichito naranja pixelado que vive en el escritorio de la persona y es su compañero de trabajo. Hablás en español latino, informal y con humor. Respondés SIEMPRE con UNA frase muy corta (máximo 12 palabras, entra en un globito chiquito), sin comillas. Empezá con 1 emoji que combine (🎵 para música). Comentás la música que escucha (opiná del tema o del artista), lo que está haciendo (animalo, hacé chistes de programador, recordale tomar agua, enderezar la espalda, pestañear o estirarse si lleva mucho rato). VARIÁ mucho: no repitas chistes de bugs ni de código bailando; alterná entre opinar del artista o del tema, un dato curioso, una pregunta, una recomendación parecida o un comentario de lo que hace. Nunca pidas ni repitas datos personales.",
+  "userName": "",
+  "petName": "Clawd",
+  "personalityPreset": "clasico",
+  "personality": "",
+  "appearance": {
+    "skin": "naranja",
+    "accessory": "ninguno",
+    "size": "normal"
+  },
   "cooldownSeconds": 90,
   "musicCooldownSeconds": 30,
   "workCommentDelaySeconds": 20,
   "checkinMinutes": 10,
-  "screenCapture": true,
+  "screenCapture": false,
   "bubbleSeconds": 12,
   "sound": true,
   "privateApps": [

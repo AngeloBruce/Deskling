@@ -15,9 +15,10 @@
     Grilla de 32x26 (el doble que antes) para que la carita tenga detalle.
     - #clawd tiene una clase de ANIMACIÓN (idle, talking, excited…)
     - y un atributo data-face con la CARA: normal, happy (^ ^), squint (> <) o angry (enojado).
+    - y data-accessory con el ACCESORIO (los catálogos están en src/presets.js).
     style.css muestra solo el grupo de ojos que corresponde a la cara.
   -->
-  <div id="clawd" class="idle" data-face="normal" title="Doble clic: que opine ahora · Clic derecho: menú">
+  <div id="clawd" class="idle" data-face="normal" data-accessory="ninguno" title="Doble clic: que opine ahora · Clic derecho: menú">
     <svg viewBox="0 0 32 26" shape-rendering="crispEdges">
       <!-- Laptop: va primero para quedar detrás de Clawd. La tapa tiene 3 dibujos
            (cerrada, a medio abrir, abierta) que style.css va alternando. -->
@@ -89,6 +90,12 @@
         <rect x="15" y="13" width="2" height="1" />
         <rect x="17" y="12" width="1" height="1" />
       </g>
+      <!-- Accesorios: style.css muestra el de data-accessory. Van después de la cara, para
+           quedar encima, y fuera de .body, porque la despedida usa el orden de sus rect. -->
+      <g class="acc acc-gorrito"><rect x="9" y="1" width="14" height="3" fill="#c94f4f" /><rect x="8" y="3" width="16" height="1" fill="#f4ece4" /><rect x="15" y="-1" width="2" height="2" fill="#f4ece4" /></g>
+      <g class="acc acc-lentes"><rect x="9" y="8" width="4" height="3" fill="#ffffff" fill-opacity=".3" /><rect x="8" y="7" width="6" height="1" fill="#1f1a17" /><rect x="8" y="11" width="6" height="1" fill="#1f1a17" /><rect x="8" y="8" width="1" height="3" fill="#1f1a17" /><rect x="13" y="8" width="1" height="3" fill="#1f1a17" /><rect x="19" y="8" width="4" height="3" fill="#ffffff" fill-opacity=".3" /><rect x="18" y="7" width="6" height="1" fill="#1f1a17" /><rect x="18" y="11" width="6" height="1" fill="#1f1a17" /><rect x="18" y="8" width="1" height="3" fill="#1f1a17" /><rect x="23" y="8" width="1" height="3" fill="#1f1a17" /><rect x="14" y="8" width="4" height="1" fill="#1f1a17" /></g>
+      <g class="acc acc-corona"><rect x="10" y="2" width="12" height="2" fill="#f2c14e" /><rect x="10" y="0" width="2" height="2" fill="#f2c14e" /><rect x="15" y="-1" width="2" height="3" fill="#f2c14e" /><rect x="20" y="0" width="2" height="2" fill="#f2c14e" /><rect x="15" y="2" width="2" height="1" fill="#c94f4f" /></g>
+      <g class="acc acc-mono"><rect x="5" y="2" width="3" height="3" fill="#d6336c" /><rect x="8" y="3" width="2" height="1" fill="#a61e4d" /><rect x="10" y="2" width="3" height="3" fill="#d6336c" /></g>
       <!-- Clawd usando la laptop: otro dibujo entero, de costado y agachado, con patitas
            cortas y los dos bracitos hacia adelante. Solo se ve con la clase .working. -->
       <g class="pose">
@@ -103,6 +110,11 @@
         <rect class="pose-leg" x="13" y="21" width="3" height="3" />
         <rect class="pose-leg" x="20" y="21" width="3" height="3" />
         <rect class="pose-leg" x="25" y="21" width="3" height="3" />
+        <!-- los mismos accesorios para esta pose (los lentes siguen a sus ojos, más a la izquierda) -->
+        <g class="acc acc-gorrito" transform="translate(3 0)"><rect x="9" y="1" width="14" height="3" fill="#c94f4f" /><rect x="8" y="3" width="16" height="1" fill="#f4ece4" /><rect x="15" y="-1" width="2" height="2" fill="#f4ece4" /></g>
+        <g class="acc acc-lentes"><rect x="6" y="8" width="4" height="3" fill="#ffffff" fill-opacity=".3" /><rect x="5" y="7" width="6" height="1" fill="#1f1a17" /><rect x="5" y="11" width="6" height="1" fill="#1f1a17" /><rect x="5" y="8" width="1" height="3" fill="#1f1a17" /><rect x="10" y="8" width="1" height="3" fill="#1f1a17" /><rect x="17" y="8" width="4" height="3" fill="#ffffff" fill-opacity=".3" /><rect x="16" y="7" width="6" height="1" fill="#1f1a17" /><rect x="16" y="11" width="6" height="1" fill="#1f1a17" /><rect x="16" y="8" width="1" height="3" fill="#1f1a17" /><rect x="21" y="8" width="1" height="3" fill="#1f1a17" /><rect x="11" y="8" width="5" height="1" fill="#1f1a17" /></g>
+        <g class="acc acc-corona" transform="translate(3 0)"><rect x="10" y="2" width="12" height="2" fill="#f2c14e" /><rect x="10" y="0" width="2" height="2" fill="#f2c14e" /><rect x="15" y="-1" width="2" height="3" fill="#f2c14e" /><rect x="20" y="0" width="2" height="2" fill="#f2c14e" /><rect x="15" y="2" width="2" height="1" fill="#c94f4f" /></g>
+        <g class="acc acc-mono" transform="translate(3 0)"><rect x="5" y="2" width="3" height="3" fill="#d6336c" /><rect x="8" y="3" width="2" height="1" fill="#a61e4d" /><rect x="10" y="2" width="3" height="3" fill="#d6336c" /></g>
       </g>
     </svg>
     <!-- "Zzz" cuando duerme (pausado) y "..." cuando piensa -->

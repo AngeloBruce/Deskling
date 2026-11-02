@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('clawd', {
   dragEnd: () => ipcRenderer.send('drag-end'),
   // main → ventana: de qué lado está Clawd ('left' o 'right'), para acomodar el globito
   onSide: (cb) => ipcRenderer.on('side', (_e, side) => cb(side)),
+  // main → ventana: cómo se ve Clawd { colors, accessory, width, height, petName }
+  onAppearance: (cb) => ipcRenderer.on('appearance', (_e, look) => cb(look)),
   // main → ventana: ¿está sonando Spotify? (para que baile de vez en cuando)
   onMusic: (cb) => ipcRenderer.on('music', (_e, info) => cb(info)),
 });
