@@ -4,6 +4,9 @@ node_modules/
 # Tu API key: NUNCA subirla
 .env
 
+# Tus ajustes con `npm start` (y sus copias): tampoco se suben
+config.local.json*
+
 # Registro de seguridad local
 logs/
 
