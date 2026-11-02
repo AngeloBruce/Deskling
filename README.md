@@ -80,7 +80,7 @@ La API key no se edita ahí: sigue en el `.env`. Las URLs de los proveedores y e
 
 El `config.json` del proyecto tiene los valores por defecto y la app nunca lo escribe. Tus ajustes van aparte:
 
-- instalado: `%APPDATA%Desklingconfig.json`;
+- instalado: `%APPDATA%\Deskling\config.json`;
 - con `npm start`: `config.local.json`, que no se sube al repo.
 
 Si tu archivo tiene un error, Clawd te avisa, usa los valores por defecto y guarda una copia `.bak` al lado, para que no pierdas nada.
