@@ -15,6 +15,7 @@ Usa IA gratis (Groq o NVIDIA) y filtra contraseñas, códigos y otros datos sens
 - ✅ Te avisa cuando Claude Code termina o necesita permiso.
 - 📊 Al final del día te muestra un resumen: apps, pomodoros, canciones.
 - 💻 De vez en cuando saca su laptop y se pone a teclear.
+- 🎨 Se personaliza sin tocar archivos: nombres, personalidad, color, accesorios y tamaño.
 - 🔐 Todo pasa por un filtro de seguridad local antes de salir a la IA.
 
 ## Cómo usarlo
@@ -43,7 +44,7 @@ Genera `dist/Deskling Setup 0.1.0.exe`. Al abrirlo, se instala solo para tu usua
 - **Si `npm run dist` falla con "Cannot create symbolic link"**: es un problema conocido de electron-builder en Windows sin permisos de administrador. Activá el *Modo de programador* de Windows, o extraé a mano `winCodeSign` en `%LOCALAPPDATA%\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0` sin la carpeta `darwin`.
 
 - **Doble clic** en Clawd → opina ahora.
-- **Clic derecho** en Clawd (o en el ícono de la bandeja) → pausar, activar la captura de pantalla, ver el registro de seguridad, salir.
+- **Clic derecho** en Clawd (o en el ícono de la bandeja) → pausar, activar la captura de pantalla, abrir los ajustes, ver el registro de seguridad, salir.
 - **Arrastrarlo** para moverlo.
 
 ## Qué ve y qué manda
@@ -65,7 +66,24 @@ Todo el texto pasa por el guard, que:
 
 Pruebas: `npm test`.
 
+## Ajustes
+
+Clic derecho → **Configuración** abre la ventana de ajustes. Los cambios se aplican sin reiniciar, y la apariencia se ve en la mascota antes de guardar.
+
+- **Perfil:** tu nombre (opcional; se envía a tu proveedor de IA), el nombre de la mascota y la personalidad: Clásico, Sarcástico, Tierno, Motivador, Tranquilo o una tuya. Las reglas de formato y de datos personales se agregan siempre.
+- **Apariencia:** color, accesorio y tamaño.
+- **Comentarios, Foco y bienestar, Privacidad y General:** el resto de las opciones de abajo.
+
+La API key no se edita ahí: sigue en el `.env`. Las URLs de los proveedores y el puerto tampoco; para eso está **General → Abrir config.json**.
+
 ## Configuración (`config.json`)
+
+El `config.json` del proyecto tiene los valores por defecto y la app nunca lo escribe. Tus ajustes van aparte:
+
+- instalado: `%APPDATA%Desklingconfig.json`;
+- con `npm start`: `config.local.json`, que no se sube al repo.
+
+Si tu archivo tiene un error, Clawd te avisa, usa los valores por defecto y guarda una copia `.bak` al lado, para que no pierdas nada.
 
 - `provider`: `groq` o `nvidia`.
 - `cooldownSeconds`, `musicCooldownSeconds`: cuánto espera entre comentarios.
@@ -74,7 +92,10 @@ Pruebas: `npm test`.
 - `screenCapture`: `true` para que también mire la pantalla (se puede cambiar desde el menú).
 - `privateApps`: palabras que, si aparecen en la app o el título, hacen que no mire ni mande nada.
 - `ignoredNotificationApps`: apps cuyas notificaciones ignora.
-- `personality`: la personalidad de Clawd.
+- `userName`, `petName`: tu nombre y el de la mascota.
+- `personalityPreset`: `clasico`, `sarcastico`, `tierno`, `motivador`, `tranquilo` o `custom`.
+- `personality`: tu texto, cuando `personalityPreset` es `custom`.
+- `appearance`: `skin` (`naranja`, `azul`, `verde`, `morado`, `rosa`, `gris`), `accessory` (`ninguno`, `gorrito`, `lentes`, `corona`, `mono`) y `size` (`chico`, `normal`, `grande`, `enorme`).
 - `avoidEmojis`: emojis que Clawd nunca usa (si se le escapa uno, lo cambia por ✨).
 
 - `claudeCode`: avisos de Claude Code (ver abajo). `nagMinutes` = cuánto espera antes de enojarse.
@@ -128,7 +149,7 @@ Los días con menos de 30 min de uso (`summary.minActiveMinutes`) no tienen resu
 Cuando Claude termina o te pide permiso, Clawd te avisa (si no estás mirando la app de Claude, la terminal o VS Code).
 Si no vas a verlo en `nagMinutes`, se enoja 😤. El hook solo habla con `127.0.0.1` y si Clawd está cerrado no hace nada.
 
-Depuración: con `CLAWD_DEBUG=1` escribe todo lo que pasa en `logs/debug.log`.
+Depuración: con `CLAWD_DEBUG=1` escribe todo lo que pasa en `logs/debug.log`. Con `CLAWD_DATA_DIR=<carpeta>` usa esa carpeta para los datos, y así podés probar sin tocar los tuyos.
 
 ## Estructura
 
@@ -138,12 +159,15 @@ src/
   brain.js             cliente de la IA (API compatible con OpenAI)
   guard.js             filtro de datos sensibles
   preload.js           puente seguro ventana ↔ main
+  settings.js          leer, validar y guardar la config sin perder nada
+  settings-preload.js  puente de la ventana de ajustes
+  presets.js           personalidades, skins, accesorios y tamaños
   sensors/
     win-sensors.ps1    ventana activa, música y notificaciones (PowerShell)
     ocr.ps1            OCR local de capturas
     index.js           arranca los scripts y emite eventos
-  renderer/            el sprite de Clawd, el globito y las animaciones
-test/guard.test.js     pruebas del filtro
+  renderer/            el sprite de Clawd, el globito, las animaciones y la ventana de ajustes
+test/                  pruebas (`npm test`)
 ```
 
 > Clawd es la mascota de Claude Code y una marca de Anthropic. Este es un proyecto
