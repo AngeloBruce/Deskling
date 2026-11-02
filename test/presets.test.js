@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
-const { PERSONALITIES, SKINS, buildPersonality, LEGACY_PERSONALITY } = require('../src/presets');
+const { PERSONALITIES, SKINS, SIZES, skinOf, sizeOf, accessoryOf, buildPersonality, LEGACY_PERSONALITY } = require('../src/presets');
 
 const SAFETY = 'Nunca pidas ni repitas datos personales.';
 
@@ -42,6 +42,18 @@ test('los nombres y la skin llegan al prompt', () => {
 
 test('sin nombre de persona no se habla de nombres', () => {
   assert.doesNotMatch(buildPersonality({}), /se llama/);
+});
+
+test('un valor fuera de los catálogos cae en el valor por defecto, también si es heredado', () => {
+  for (const id of ['noexiste', 'constructor', '__proto__', 'toString', undefined, null]) {
+    assert.equal(skinOf(id), SKINS.naranja, String(id));
+    assert.equal(sizeOf(id), SIZES.normal, String(id));
+    assert.equal(accessoryOf(id), 'ninguno', String(id));
+    assert.match(buildPersonality({ appearance: { skin: id } }), /^Sos Clawd, un bichito naranja/, String(id));
+  }
+  assert.equal(skinOf('azul'), SKINS.azul);
+  assert.equal(sizeOf('grande'), SIZES.grande);
+  assert.equal(accessoryOf('corona'), 'corona');
 });
 
 test('todas las skins tienen sus colores', () => {

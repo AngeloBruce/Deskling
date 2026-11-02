@@ -48,6 +48,34 @@ test('readUserConfig: un JSON roto queda intacto y con copia', () => {
   assert.equal(fs.readFileSync(r.backup, 'utf8'), '{ "userName": "Ana", }');
 });
 
+test('readUserConfig: si no se puede leer no se cae y lo avisa', () => {
+  const file = tempFile();
+  fs.mkdirSync(file); // una carpeta en lugar del archivo: da un error de lectura en cualquier sistema
+  const r = s.readUserConfig(file);
+  assert.equal(r.status, 'unreadable');
+  assert.deepEqual(r.config, {});
+  assert.ok(r.code);
+});
+
+test('readUserConfig: un JSON roto sin copia posible también cuenta como ilegible', (t) => {
+  const file = tempFile();
+  fs.writeFileSync(file, '{ roto');
+  t.mock.method(fs, 'writeFileSync', () => { throw Object.assign(new Error('sin permiso'), { code: 'EPERM' }); });
+  const r = s.readUserConfig(file);
+  assert.equal(r.status, 'unreadable');
+  assert.equal(r.code, 'EPERM');
+  assert.equal(r.backup, undefined);
+});
+
+test('samePath: reconoce la misma carpeta escrita de otra forma', () => {
+  const dir = path.join(os.tmpdir(), 'proyecto');
+  assert.ok(s.samePath(dir, dir + path.sep));
+  assert.ok(s.samePath(dir, path.join(dir, 'sub', '..')));
+  if (process.platform === 'win32') assert.ok(s.samePath(dir, dir.toUpperCase()));
+  assert.ok(!s.samePath(dir, path.join(dir, 'sub')));
+  assert.ok(!s.samePath(dir, dir + '2'));
+});
+
 test('readUserConfig: tolera el BOM del Bloc de notas', () => {
   const file = tempFile();
   fs.writeFileSync(file, '﻿{"sound":false}');

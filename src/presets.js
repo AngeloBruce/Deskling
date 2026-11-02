@@ -80,6 +80,12 @@ function identity(petName, skin) {
   return `Sos ${petName}, un bichito ${skin.adjective} pixelado que vive en el escritorio de la persona y es su compañero de trabajo.`;
 }
 
+// Búsquedas en los catálogos. Con Object.hasOwn, un valor escrito a mano como
+// "constructor" no encuentra lo heredado del objeto y cae en el valor por defecto.
+const skinOf = (id) => (Object.hasOwn(SKINS, id) ? SKINS[id] : SKINS.naranja);
+const sizeOf = (id) => (Object.hasOwn(SIZES, id) ? SIZES[id] : SIZES.normal);
+const accessoryOf = (id) => (Object.hasOwn(ACCESSORIES, id) ? id : 'ninguno');
+
 function compose({ petName, skin, tone, content, userName }) {
   const name = userName
     ? `La persona se llama ${userName}: podés decirle por su nombre de vez en cuando, no en todos los comentarios. Es el único dato personal que podés usar.`
@@ -92,7 +98,7 @@ function compose({ petName, skin, tone, content, userName }) {
  * (por ejemplo, un config.json editado a mano), usa el valor por defecto.
  */
 function buildPersonality(config) {
-  const skin = SKINS[config.appearance?.skin] || SKINS.naranja;
+  const skin = skinOf(config.appearance?.skin);
   const petName = config.petName || 'Clawd';
   const userName = config.userName || '';
   const custom = (config.personality || '').trim();
@@ -108,4 +114,4 @@ function buildPersonality(config) {
 // Quien lo tenga sin cambios pasa a "clasico"; cualquier otro texto se respeta como propio.
 const LEGACY_PERSONALITY = buildPersonality({});
 
-module.exports = { PERSONALITIES, SKINS, ACCESSORIES, SIZES, buildPersonality, LEGACY_PERSONALITY };
+module.exports = { PERSONALITIES, SKINS, ACCESSORIES, SIZES, skinOf, sizeOf, accessoryOf, buildPersonality, LEGACY_PERSONALITY };

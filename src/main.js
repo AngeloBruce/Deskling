@@ -35,7 +35,8 @@ const ROOT = path.join(__dirname, '..');
 //     de solo lectura. El config.json del proyecto queda como "valores por defecto".
 //   - con la variable CLAWD_DATA_DIR → esa carpeta (para probar sin tocar tus datos).
 const DATA = process.env.CLAWD_DATA_DIR || (app.isPackaged ? app.getPath('userData') : ROOT);
-const CONFIG_PATH = path.join(DATA, DATA === ROOT ? 'config.local.json' : 'config.json');
+const DATA_IS_PROJECT = settings.samePath(DATA, ROOT);
+const CONFIG_PATH = path.join(DATA, DATA_IS_PROJECT ? 'config.local.json' : 'config.json');
 const LOGS = path.join(DATA, 'logs');
 
 // ---------------------------------------------------------------------------
@@ -65,8 +66,19 @@ function loadConfig() {
   const merged = settings.mergeConfig(defaults, settings.migrate(configRead.config));
   // Instalado, dejamos el archivo completo para que lo puedas abrir y editar.
   // Si estaba roto NO se escribe: sigue ahí hasta que guardes algo (y ya tiene su copia).
-  if (DATA !== ROOT && configRead.status !== 'corrupt') settings.writeConfig(CONFIG_PATH, merged);
+  // Si no se pudo leer tampoco: no tiene copia, así que no se escribe en toda la sesión.
+  if (!DATA_IS_PROJECT && settingsReadable()) {
+    try {
+      settings.writeConfig(CONFIG_PATH, merged);
+    } catch (e) {
+      errorLog(`no se pudo guardar la config: ${e.code || e.message}`);
+    }
+  }
   return merged;
+}
+/** ¿Lo que hay en memoria son tus ajustes? Si es false, son los valores por defecto. */
+function settingsReadable() {
+  return configRead.status === 'ok' || configRead.status === 'missing';
 }
 const config = loadConfig();
 
@@ -75,8 +87,9 @@ const config = loadConfig();
  * guarda solo las diferencias, así un valor nuevo del config.json del proyecto te llega igual.
  */
 function saveConfig() {
+  if (configRead.status === 'unreadable') return false; // pisaría tus ajustes sin copia
   try {
-    settings.writeConfig(CONFIG_PATH, DATA === ROOT ? settings.diffConfig(defaults, config) : config);
+    settings.writeConfig(CONFIG_PATH, DATA_IS_PROJECT ? settings.diffConfig(defaults, config) : config);
     return true;
   } catch (e) {
     errorLog(`no se pudo guardar la config: ${e.code || e.message}`);
@@ -153,7 +166,7 @@ function mood(m) {
 const CLAWD_PAD = 8; // margen al borde (igual que style.css)
 const MIN_WIN_H = 272; // lo justo para que entre el menú, aunque Clawd sea chico
 function layoutFor(sizeName) {
-  const size = presets.SIZES[sizeName] || presets.SIZES.normal;
+  const size = presets.sizeOf(sizeName);
   return { clawdW: size.w, clawdH: size.h, winW: size.w + 200, winH: Math.max(MIN_WIN_H, size.h + 223) };
 }
 let layout = layoutFor(config.appearance?.size);
@@ -207,10 +220,10 @@ function updateSide() {
 
 /** Le manda a la ventana cómo tiene que verse Clawd (`look` = appearance, guardada o de prueba). */
 function sendAppearance(look = config.appearance) {
-  const size = presets.SIZES[look?.size] || presets.SIZES.normal;
+  const size = presets.sizeOf(look?.size);
   win?.webContents.send('appearance', {
-    colors: presets.SKINS[look?.skin] || presets.SKINS.naranja,
-    accessory: presets.ACCESSORIES[look?.accessory] ? look.accessory : 'ninguno',
+    colors: presets.skinOf(look?.skin),
+    accessory: presets.accessoryOf(look?.accessory),
     width: size.w,
     height: size.h,
     petName: config.petName,
@@ -252,7 +265,7 @@ function previewAppearance(look = config.appearance) {
  * (así no hace falta un archivo .png/.ico). Lleva el color de la skin.
  */
 function trayIcon(skinName = config.appearance?.skin) {
-  const color = (presets.SKINS[skinName] || presets.SKINS.naranja).main;
+  const color = presets.skinOf(skinName).main;
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
   const rows = [
     '................',
@@ -790,7 +803,8 @@ app.whenReady().then(() => {
   wireSettings();
   // deja el registro de Windows igual que config.autoStart. Solo el instalado:
   // si no, cada `npm start` haría que Windows abra la copia del proyecto.
-  if (app.isPackaged) applyAutoStart();
+  // Sin tus ajustes no se toca: el valor por defecto podría no ser el tuyo.
+  if (app.isPackaged && settingsReadable()) applyAutoStart();
 
   // Clic derecho sobre Clawd → el menú propio. Le pasamos el estado actual
   // (pausado, captura) para que muestre los interruptores bien.
@@ -836,6 +850,9 @@ app.whenReady().then(() => {
     if (configRead.status === 'corrupt') {
       errorLog(`config con errores: copia en ${path.basename(configRead.backup)}`);
       say('⚠️ Tu config.json tiene un error: uso los valores por defecto y guardé una copia al lado.', { seconds: 30, face: 'squint' });
+    } else if (configRead.status === 'unreadable') {
+      errorLog(`no se pudo leer la config: ${configRead.code}`);
+      say('⚠️ No pude leer tu config.json: uso los valores por defecto y no guardo nada hasta que reinicies.', { seconds: 30, face: 'squint' });
     } else {
       const hi = config.userName ? `¡Hola, ${config.userName}!` : '¡Hola!';
       say(`${hi} Soy ${config.petName} 🦀 Te acompaño mientras trabajás.`);

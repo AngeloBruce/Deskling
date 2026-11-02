@@ -40,8 +40,10 @@ function diffConfig(base, current) {
 
 /**
  * Lee la config del usuario.
- * @returns {{config: object, status: 'ok'|'missing'|'corrupt', backup?: string}}
+ * @returns {{config: object, status: 'ok'|'missing'|'corrupt'|'unreadable', backup?: string, code?: string}}
  *   Si está rota, deja una copia al lado (`backup`) y devuelve una config vacía.
+ *   'unreadable' = existe pero no se pudo leer o copiar (permisos, archivo bloqueado):
+ *   no hay copia, así que ese archivo no se debe pisar.
  */
 function readUserConfig(file) {
   let raw;
@@ -49,7 +51,7 @@ function readUserConfig(file) {
     raw = fs.readFileSync(file, 'utf8');
   } catch (e) {
     if (e.code === 'ENOENT') return { config: {}, status: 'missing' };
-    throw e;
+    return { config: {}, status: 'unreadable', code: e.code };
   }
   try {
     const config = JSON.parse(raw.replace(/^﻿/, '')); // el Bloc de notas puede agregar un BOM
@@ -58,9 +60,18 @@ function readUserConfig(file) {
   } catch {
     const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
     const backup = `${file}.bak-${stamp}`;
-    fs.writeFileSync(backup, raw);
+    try {
+      fs.writeFileSync(backup, raw);
+    } catch (e) {
+      return { config: {}, status: 'unreadable', code: e.code };
+    }
     return { config: {}, status: 'corrupt', backup };
   }
+}
+
+/** ¿Son la misma carpeta? Compara rutas resueltas: da igual una barra final o, en Windows, las mayúsculas. */
+function samePath(a, b) {
+  return path.relative(a, b) === '';
 }
 
 /** Escribe el JSON de forma segura: a un temporal y después renombra. */
@@ -209,4 +220,4 @@ function limits() {
   return out;
 }
 
-module.exports = { mergeConfig, diffConfig, readUserConfig, writeConfig, migrate, sanitize, editableView, limits, getPath };
+module.exports = { mergeConfig, diffConfig, readUserConfig, samePath, writeConfig, migrate, sanitize, editableView, limits, getPath };
