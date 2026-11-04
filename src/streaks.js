@@ -16,7 +16,7 @@ const ACTIVE_SEC = 10 * 60;      // menos que esto no cuenta como un día de uso
 const DISTRACT_MARGIN_SEC = 60;  // pasar de largo por una distracción no corta el día
 const BROKEN_MIN_DAYS = 3;       // una racha más corta se corta sin aviso
 
-const EMPTY_DAY = { water: 0, waterDone: false, pomodoros: 0, activeSec: 0, distractSec: 0 };
+const EMPTY_DAY = { water: 0, waterDone: false, waterAsked: 0, pomodoros: 0, activeSec: 0, distractSec: 0 };
 
 // closedOnly = recién se sabe cuando termina el día
 const KINDS = [
@@ -50,6 +50,7 @@ function cleanData(raw) {
     days[date] = {
       water: count(d.water),
       waterDone: d.waterDone === true,
+      waterAsked: count(d.waterAsked),
       pomodoros: count(d.pomodoros),
       activeSec: count(d.activeSec),
       distractSec: count(d.distractSec),
@@ -160,6 +161,9 @@ class Streaks {
     return d.water;
   }
 
+  /** Anota que se preguntó por el vaso: sirve para saber si salió, aunque no lo hayas visto. */
+  asked() { this.rec().waterAsked++; }
+
   /** ¿Ya cumpliste los vasos de hoy? Sirve también si bajaste la meta durante el día. */
   waterReached(goal) {
     if (this.peek().water < goal) return this.peek().waterDone;
@@ -221,7 +225,7 @@ class Streaks {
 class WaterFlow {
   constructor() {
     this.phase = 'idle';
-    this.wait = 1; // cuántos avisos faltan para la próxima pregunta
+    this.wait = 0; // cuántos avisos faltan para la próxima pregunta (la primera, al abrir la app)
   }
 
   /** Pasó un aviso. Si no se puede preguntar justo ahora, la pregunta queda pendiente. */

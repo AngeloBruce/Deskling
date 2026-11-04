@@ -221,9 +221,8 @@ test('valores escritos a mano se ignoran', () => {
   assert.ok(!Object.hasOwn(s.data.best, 'otra'));
 });
 
-test('el vaso: ofrece, pregunta a los 2 avisos y vuelve a ofrecer', () => {
+test('el vaso: ofrece al abrir, pregunta a los 2 avisos y vuelve a ofrecer', () => {
   const w = new WaterFlow();
-  w.tick();
   assert.equal(w.due(false), 'offer');
   assert.ok(w.start(2));
   w.tick();

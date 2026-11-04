@@ -66,6 +66,23 @@ function beep() {
  *   buttons → botones [{ id, label }]: al tocar uno, main decide qué sigue
  */
 window.clawd.onSay((msg) => {
+  if (msg.buttons?.length) question = { msg, until: Date.now() + msg.seconds * 1000 };
+  showBubble(msg);
+});
+
+// Una pregunta con botones no se pierde si otro mensaje la tapa: vuelve cuando ese termina.
+let question = null; // { msg, until }
+
+function afterBubble() {
+  const left = question ? question.until - Date.now() : 0;
+  if (left > 0) showBubble({ ...question.msg, sound: false, seconds: left / 1000 });
+  else {
+    question = null;
+    bubble.classList.add('hidden');
+  }
+}
+
+function showBubble(msg) {
   const span = document.createElement('span'); // ver #bubble .text en style.css
   span.className = 'text';
   span.textContent = msg.text;
@@ -84,8 +101,8 @@ window.clawd.onSay((msg) => {
   setTimeout(() => setMood(baseMood), 1600);
 
   clearTimeout(hideTimer);
-  hideTimer = setTimeout(() => bubble.classList.add('hidden'), (msg.seconds || 12) * 1000);
-});
+  hideTimer = setTimeout(afterBubble, (msg.seconds || 12) * 1000);
+}
 
 /** La fila de botones del globito. Desaparece al tocar uno, así no se contesta dos veces. */
 function bubbleButtons(buttons) {
@@ -97,6 +114,7 @@ function bubbleButtons(buttons) {
     b.textContent = label;
     b.addEventListener('click', (e) => {
       e.stopPropagation(); // si no, el clic también cerraría el globito
+      question = null;
       row.remove();
       window.clawd.bubbleAction(id);
     });
@@ -107,12 +125,17 @@ function bubbleButtons(buttons) {
 
 /** El proceso principal nos dice "pensando", "durmiendo", etc. */
 window.clawd.onMood((mood) => {
+  if (mood === 'sleeping') question = null; // dormido no pregunta
   if (mood === 'idle' || mood === 'sleeping') baseMood = mood;
   setMood(mood);
 });
 
-// Clic en el globito → se cierra.
-bubble.addEventListener('click', () => bubble.classList.add('hidden'));
+// Clic en el globito → se cierra. Si era la pregunta, la descartás; si era otro mensaje, ella vuelve.
+bubble.addEventListener('click', () => {
+  if (bubble.querySelector('.actions')) question = null;
+  clearTimeout(hideTimer);
+  afterBubble();
+});
 
 // Clic derecho sobre Clawd → menú propio (si ya está abierto, lo cierra).
 clawdEl.addEventListener('contextmenu', (e) => {
@@ -232,6 +255,7 @@ let focusInfo = { phase: 'off', endsAt: 0, total: 1 };
 let badgeTimer = null;
 
 window.clawd.onFocus(({ phase, endsAt }) => {
+  if (phase === 'work') question = null; // en foco no vuelve: pregunta otra vez en el descanso
   focusInfo = { phase, endsAt, total: Math.max(1, endsAt - Date.now()) };
   clearInterval(badgeTimer);
   if (phase === 'off') { badge.classList.add('hidden'); return; }
@@ -256,6 +280,8 @@ function drawBadge() {
 // Despedida: saluda con el bracito, dice chau, salta y se encoge hasta desaparecer.
 // main.js cierra la app cuando termina (1.7 s).
 window.clawd.onGoodbye(() => {
+  question = null;
+  clearTimeout(hideTimer);
   closeMenu();
   clearTimeout(danceTimer);
   const span = document.createElement('span');

@@ -874,6 +874,7 @@ app.whenReady().then(() => {
   });
 
   startTimers();
+  setTimeout(askWater, 90 * 1000); // el primer vaso no espera al primer aviso; antes pasa el saludo
 
   if (config.claudeCode?.enabled) startClaudeServer();
 
@@ -1123,6 +1124,7 @@ function streakOpts() {
 }
 
 const daysText = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
+const WATER_QUESTION_SECONDS = 180; // queda a la vista un buen rato: es fácil no verla si estás en otra cosa
 
 /** Si toca, pregunta por el vaso. Devuelve true si habló. En foco, en pausa o sin vos, queda pendiente. */
 function askWater() {
@@ -1131,10 +1133,11 @@ function askWater() {
   const due = water.due(streaks.waterReached(o.waterGoal));
   if (!due) return false;
   water.shown(o.waterAfterReminders);
+  streaks.asked();
   if (due === 'offer') offerGlass('💧 ¿Te sirves un vaso de agua?');
   else {
     say('💧 ¿Ya terminaste el vaso?', {
-      seconds: 60,
+      seconds: WATER_QUESTION_SECONDS,
       sound: config.sound,
       buttons: [{ id: 'water-done', label: 'Sí' }, { id: 'water-later', label: 'Todavía no' }],
     });
@@ -1143,7 +1146,7 @@ function askWater() {
 }
 
 function offerGlass(text) {
-  say(text, { seconds: 60, sound: config.sound, buttons: [{ id: 'water-start', label: 'Ya tengo uno' }] });
+  say(text, { seconds: WATER_QUESTION_SECONDS, sound: config.sound, buttons: [{ id: 'water-start', label: 'Ya tengo uno' }] });
 }
 
 /** Tocaste un botón del globito. Lo que no corresponde en este momento se ignora. */
