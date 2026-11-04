@@ -85,6 +85,12 @@
       "🤲 Mové las muñecas en círculos, que tipeás un montón."
     ]
   },
+  "streaks": {
+    "enabled": true,
+    "waterGoal": 4,
+    "waterAfterReminders": 2,
+    "restDaysPerWeek": 2
+  },
   "claudeCode": {
     "enabled": true,
     "port": 47823,

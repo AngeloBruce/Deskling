@@ -63,12 +63,14 @@ function beep() {
  *   seconds → cuánto queda visible
  *   face    → forzar una cara: 'happy', 'squint' o 'angry'
  *   card    → tarjeta de varias líneas (el resumen del día), sin cortar el texto
+ *   buttons → botones [{ id, label }]: al tocar uno, main decide qué sigue
  */
 window.clawd.onSay((msg) => {
   const span = document.createElement('span'); // ver #bubble .text en style.css
   span.className = 'text';
   span.textContent = msg.text;
   bubble.replaceChildren(span);
+  if (msg.buttons?.length) bubble.append(bubbleButtons(msg.buttons));
   bubble.classList.toggle('alert', !!msg.alert);
   bubble.classList.toggle('card', !!msg.card);
   bubble.classList.remove('hidden');
@@ -84,6 +86,24 @@ window.clawd.onSay((msg) => {
   clearTimeout(hideTimer);
   hideTimer = setTimeout(() => bubble.classList.add('hidden'), (msg.seconds || 12) * 1000);
 });
+
+/** La fila de botones del globito. Desaparece al tocar uno, así no se contesta dos veces. */
+function bubbleButtons(buttons) {
+  const row = document.createElement('div');
+  row.className = 'actions';
+  for (const { id, label } of buttons) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation(); // si no, el clic también cerraría el globito
+      row.remove();
+      window.clawd.bubbleAction(id);
+    });
+    row.append(b);
+  }
+  return row;
+}
 
 /** El proceso principal nos dice "pensando", "durmiendo", etc. */
 window.clawd.onMood((mood) => {

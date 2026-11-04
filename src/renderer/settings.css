@@ -97,6 +97,23 @@ small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; f
 .chips button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .chips i { width: 14px; height: 14px; }
 
+/* Rachas: una fila por racha, con los días a la derecha */
+#streak-list { display: grid; gap: 6px; margin-bottom: 14px; }
+.streak {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 3px;
+}
+.streak .days { font-size: 16px; font-weight: 700; text-align: right; white-space: nowrap; }
+.streak .days small { margin-top: 0; }
+.streak strong { display: block; }
+.streak small { margin-top: 0; }
+
 .link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 
 /* ---------- Pie ---------- */

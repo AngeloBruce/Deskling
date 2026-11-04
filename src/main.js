@@ -25,6 +25,7 @@ const presets = require('./presets');
 const { Brain } = require('./brain');
 const { Pomodoro } = require('./focus');
 const { DayStats } = require('./stats');
+const { Streaks, WaterFlow } = require('./streaks');
 const { startSensors, ocr } = require('./sensors');
 
 const ROOT = path.join(__dirname, '..');
@@ -479,6 +480,11 @@ function settingsData() {
       sizes: entries(presets.SIZES),
       providers: Object.entries(config.providers).map(([id, p]) => ({ id, hasKey: !!process.env[p.envKey] })),
     },
+    streaks: {
+      items: streaks.status(streakOpts().restDaysPerWeek),
+      glasses: streaks.glasses(),
+      goal: streakOpts().waterGoal,
+    },
   };
 }
 
@@ -827,6 +833,7 @@ app.whenReady().then(() => {
     });
   });
   ipcMain.on('menu-action', (_e, name) => MENU_ACTIONS[name]?.());
+  ipcMain.on('bubble-action', (e, id) => { if (e.sender === win.webContents) onBubbleAction(id); });
 
   // Clics que atraviesan: la ventana es más grande que Clawd (para que entre el
   // globito) y la parte transparente tapaba botones de otras apps. Así que por
@@ -875,7 +882,7 @@ app.whenReady().then(() => {
 
   // Resumen del día: contar el tiempo en cada app y ver si ya toca mostrarlo.
   setInterval(trackDay, 10 * 1000);
-  setInterval(() => { stats.save(); checkSummaryTime(); }, 60 * 1000);
+  setInterval(() => { stats.save(); streaks.save(); checkSummaryTime(); }, 60 * 1000);
 });
 
 /**
@@ -890,6 +897,8 @@ function randomTip() {
 }
 
 function wellnessTip() {
+  water.tick();
+  if (announceBroken() || askWater()) return; // uno por aviso: si no, el segundo taparía al primero
   const tips = config.wellness.tips;
   if (state.paused || state.busy || pomodoro.working || !tips.length) return; // en foco, el tip llega en el descanso
   let i;
@@ -898,7 +907,7 @@ function wellnessTip() {
   say(tips[i], { sound: config.sound });
 }
 
-app.on('before-quit', () => { sensors?.stop(); stats.save(); });
+app.on('before-quit', () => { sensors?.stop(); stats.save(); streaks.save(); });
 app.on('window-all-closed', () => app.quit());
 
 // ---------------------------------------------------------------------------
@@ -1001,8 +1010,9 @@ function onFocusPhase({ phase, endsAt, cycle, prev }) {
     stats.pomodoro();
     const mins = phase === 'longBreak' ? f.longBreakMinutes : f.breakMinutes;
     const extra = phase === 'longBreak' ? ` ¡Ya van ${cycle} 🍅, te ganaste uno largo!` : '';
-    say(`⏰ ¡Listo el foco! Descanso de ${mins} min.${extra} ${randomTip()}`, { alert: true, sound: config.sound, face: 'happy', seconds: 15 });
+    say(`⏰ ¡Listo el foco! Descanso de ${mins} min.${extra}${focusStreakNote()} ${randomTip()}`, { alert: true, sound: config.sound, face: 'happy', seconds: 15 });
     setTimeout(releaseHeld, 6000); // el resumen de notis, después del festejo
+    setTimeout(askWater, 22000); // si el vaso quedó pendiente durante el foco, cuando ya pasó todo lo anterior
   } else if (phase === 'off' && prev !== 'off') {
     say(cycle ? `✅ Foco terminado. ¡Hiciste ${cycle} 🍅, bien ahí!` : '✅ Listo, salimos del modo foco.', { face: 'happy' });
     setTimeout(releaseHeld, 4000);
@@ -1088,6 +1098,8 @@ function onMusicResult({ cmd, ok, reason }) {
 // una frase de cierre. Si la IA falla, la tarjeta sale igual sin la frase.
 // =============================================================================
 const stats = new DayStats(LOGS);
+const streaks = new Streaks(path.join(LOGS, 'streaks.json'), { onError: errorLog });
+const water = new WaterFlow();
 
 /** Cada 10 s: sumá esos 10 s a la app activa (si estás frente a la compu). */
 function trackDay() {
@@ -1096,6 +1108,87 @@ function trackDay() {
   if (!w || powerMonitor.getSystemIdleTime() > 300) return;
   stats.addApp(w.private ? 'privada' : w.process, 10);
   if (state.distractSince) stats.distract(10);
+  if (streakOpts().enabled) streaks.addActive(10, !!state.distractSince);
+}
+
+// =============================================================================
+// Rachas y vaso de agua — la cuenta está en streaks.js (todo queda en tu PC).
+// Sin culpa: nunca avisa que estás por perder una racha, y si no contestás una
+// pregunta no pasa nada. Lo único que confirma un vaso es tu clic.
+// =============================================================================
+
+/** Las opciones ya validadas: un config.json editado a mano no puede romper la cuenta. */
+function streakOpts() {
+  return { ...defaults.streaks, ...settings.sanitize({ streaks: config.streaks }).streaks };
+}
+
+const daysText = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
+
+/** Si toca, pregunta por el vaso. Devuelve true si habló. En foco, en pausa o sin vos, queda pendiente. */
+function askWater() {
+  const o = streakOpts();
+  if (!o.enabled || state.paused || state.busy || pomodoro.working || powerMonitor.getSystemIdleTime() > 300) return false;
+  const due = water.due(streaks.waterReached(o.waterGoal));
+  if (!due) return false;
+  water.shown(o.waterAfterReminders);
+  if (due === 'offer') offerGlass('💧 ¿Te sirves un vaso de agua?');
+  else {
+    say('💧 ¿Ya terminaste el vaso?', {
+      seconds: 60,
+      sound: config.sound,
+      buttons: [{ id: 'water-done', label: 'Sí' }, { id: 'water-later', label: 'Todavía no' }],
+    });
+  }
+  return true;
+}
+
+function offerGlass(text) {
+  say(text, { seconds: 60, sound: config.sound, buttons: [{ id: 'water-start', label: 'Ya tengo uno' }] });
+}
+
+/** Tocaste un botón del globito. Lo que no corresponde en este momento se ignora. */
+function onBubbleAction(id) {
+  const o = streakOpts();
+  if (!o.enabled) return;
+  if (id === 'water-start') {
+    if (water.start(o.waterAfterReminders)) say('💧 ¡Salud! Te pregunto en un rato.', { seconds: 5 });
+  } else if (id === 'water-later') {
+    if (water.later()) say('👌 Sin apuro. Te pregunto en un rato.', { seconds: 5 });
+  } else if (id === 'water-done' && water.finish(o.waterAfterReminders)) {
+    const glasses = streaks.drink(o.waterGoal);
+    if (!streaks.waterReached(o.waterGoal)) return offerGlass(`💧 Vaso ${glasses} de ${o.waterGoal}. ¿Te sirves otro?`);
+    const run = streaks.current('water', o.restDaysPerWeek);
+    say(run > 1 ? `🎉 ¡Meta de agua cumplida! Racha: ${daysText(run)}.` : '🎉 ¡Meta de agua cumplida por hoy!', { face: 'happy' });
+  }
+}
+
+/** Suma el pomodoro y, con el primero del día, cuenta cómo va la racha. */
+function focusStreakNote() {
+  const o = streakOpts();
+  if (!o.enabled) return '';
+  const first = streaks.pomodoro() === 1;
+  const run = streaks.current('focus', o.restDaysPerWeek);
+  return first && run > 1 ? ` 🔥 Racha de foco: ${daysText(run)}.` : '';
+}
+
+/** Si se cortó una racha, lo dice una vez y sin retos. Espera a que estés usando la compu. Devuelve true si habló. */
+function announceBroken() {
+  const o = streakOpts();
+  if (!o.enabled || state.paused || state.busy || pomodoro.working || powerMonitor.getSystemIdleTime() > 300) return false;
+  const broken = streaks.takeBroken(o.restDaysPerWeek);
+  if (!broken.length) return false;
+  const list = broken.map((b) => `${b.label}: ${daysText(b.days)}`).join(', ');
+  const best = Math.max(...broken.map((b) => b.best));
+  say(`🌱 Se cortó una racha (${list}). Tu récord sigue en ${daysText(best)}. Volvemos cuando quieras.`, { seconds: 20 });
+  return true;
+}
+
+/** La línea de rachas para la tarjeta del resumen. No va a la IA: solo se muestra. */
+function streakLine() {
+  const o = streakOpts();
+  if (!o.enabled) return '';
+  const running = streaks.status(o.restDaysPerWeek).filter((s) => s.current > 0);
+  return running.length ? `🔥 Rachas: ${running.map((s) => `${s.emoji} ${s.current}`).join(' · ')}` : '';
 }
 
 /** Cada minuto: ¿ya es hora del resumen automático? */
@@ -1114,7 +1207,7 @@ async function showSummary(manual) {
   stats.save();
   const lines = stats.lines();
   // tarjeta larga: se queda hasta que hagas clic (o mucho rato si te fuiste)
-  const show = (extra) => say([...lines, extra].filter(Boolean).join('\n'), { card: true, face: 'happy', seconds: manual ? 40 : 600, sound: config.sound });
+  const show = (extra) => say([...lines, streakLine(), extra].filter(Boolean).join('\n'), { card: true, face: 'happy', seconds: manual ? 40 : 600, sound: config.sound });
 
   if (!brain || state.busy) return show('');
   state.busy = true;

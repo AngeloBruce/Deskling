@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('clawd', {
   onMood: (cb) => ipcRenderer.on('mood', (_e, mood) => cb(mood)),
   // ventana → main: abrir el menú (clic derecho sobre Clawd)
   openMenu: () => ipcRenderer.send('menu'),
+  // ventana → main: tocó un botón del globito (ej: 'water-start')
+  bubbleAction: (id) => ipcRenderer.send('bubble-action', id),
   // main → ventana: abrir/cerrar el menú propio (con el estado: pausado, captura)
   onMenuOpen: (cb) => ipcRenderer.on('menu-open', (_e, st) => cb(st)),
   onMenuClose: (cb) => ipcRenderer.on('menu-close', () => cb()),

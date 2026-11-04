@@ -113,6 +113,39 @@ function updateProvider() {
     : 'API key: falta. Agrégala en el archivo .env y reinicia la app.';
 }
 
+// --- Rachas ---
+
+const days = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
+
+function drawStreaks() {
+  const { items, glasses, goal } = data.streaks;
+  document.getElementById('streak-list').replaceChildren(...items.map((s) => {
+    const row = document.createElement('div');
+    row.className = 'streak';
+
+    const emoji = document.createElement('span');
+    emoji.textContent = s.emoji;
+
+    const name = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = s.label;
+    const hint = document.createElement('small');
+    if (s.id === 'water') hint.textContent = `${s.hint} Hoy: ${glasses} de ${goal}.`;
+    else hint.textContent = s.doneToday ? `${s.hint} Hoy: hecho.` : s.hint;
+    name.append(title, hint);
+
+    const count = document.createElement('div');
+    count.className = 'days';
+    count.textContent = days(s.current);
+    const best = document.createElement('small');
+    best.textContent = `Récord: ${days(s.best)}`;
+    count.append(best);
+
+    row.append(emoji, name, count);
+    return row;
+  }));
+}
+
 // --- Cargar y guardar ---
 
 function load(next) {
@@ -125,6 +158,7 @@ function load(next) {
   }
   updatePreset();
   updateProvider();
+  drawStreaks();
 }
 
 async function save() {

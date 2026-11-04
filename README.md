@@ -135,6 +135,15 @@ El resumen aparece una vez por día:
 
 Los días con menos de 30 min de uso (`summary.minActiveMinutes`) no tienen resumen automático. A la IA solo le llegan los números y los nombres de las apps, para que agregue una frase de cierre.
 
+## Rachas
+
+Cuatro rachas, que podés ver y apagar en **Ajustes → Logros**: 💧 agua, 🍅 foco (un pomodoro al día), 🦀 constancia (usar la compu con Clawd abierto) y 🚫 sin distracción (se cuenta al terminar el día).
+
+- **El vaso de agua:** Clawd te ofrece un vaso. Tocás *Ya tengo uno* y, 2 avisos después, te pregunta si lo terminaste. Con *Sí* suma uno; con *Todavía no* vuelve a preguntar al aviso siguiente. Nadie comprueba si tomaste: vale tu palabra. Si no contestás, no pasa nada.
+- **Sin presión:** hay días libres (2 por semana, se puede cambiar), nunca avisa que estás por perder una racha y el récord queda guardado aunque se corte.
+- **El día termina a las 4 de la mañana:** trasnochar no cuenta como un día nuevo.
+- **Privacidad:** `logs/streaks.json` guarda solo fechas y cantidades, nunca nombres de apps ni títulos, y nada de esto va a la IA.
+
 ## Avisos de Claude Code
 
 `hooks/clawd-hook.js` se registra como hook `Stop` y `Notification` en `~/.claude/settings.json`:
@@ -162,6 +171,7 @@ src/
   settings.js          leer, validar y guardar la config sin perder nada
   settings-preload.js  puente de la ventana de ajustes
   presets.js           personalidades, skins, accesorios y tamaños
+  streaks.js           las rachas y el vaso de agua
   sensors/
     win-sensors.ps1    ventana activa, música y notificaciones (PowerShell)
     ocr.ps1            OCR local de capturas

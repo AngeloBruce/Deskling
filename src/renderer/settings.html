@@ -13,6 +13,7 @@
     <button role="tab" data-tab="apariencia">Apariencia</button>
     <button role="tab" data-tab="comentarios">Comentarios</button>
     <button role="tab" data-tab="foco">Foco y bienestar</button>
+    <button role="tab" data-tab="logros">Logros</button>
     <button role="tab" data-tab="privacidad">Privacidad</button>
     <button role="tab" data-tab="general">General</button>
   </nav>
@@ -94,6 +95,19 @@
         <textarea data-path="wellness.tips" data-type="list" rows="5"></textarea>
         <small>Uno por línea.</small>
       </label>
+    </section>
+
+    <section id="logros" role="tabpanel" hidden>
+      <h2>Rachas</h2>
+      <div id="streak-list"></div>
+      <p class="note">Solo se guardan fechas y cantidades en tu PC. Nada de esto se envía a la IA.</p>
+      <label class="check"><input type="checkbox" data-path="streaks.enabled"> Contar rachas y preguntar por el agua</label>
+      <div class="grid">
+        <label class="field">Vasos de agua al día<input type="number" data-path="streaks.waterGoal"></label>
+        <label class="field">Preguntar por el vaso cada (avisos)<input type="number" data-path="streaks.waterAfterReminders"></label>
+        <label class="field">Días libres por semana<input type="number" data-path="streaks.restDaysPerWeek"></label>
+      </div>
+      <p class="note">Un aviso dura lo que marca "Consejo cada" en Foco y bienestar. Un día libre no corta la racha ni la hace crecer.</p>
     </section>
 
     <section id="privacidad" role="tabpanel" hidden>

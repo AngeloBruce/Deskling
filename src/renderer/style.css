@@ -71,6 +71,19 @@ body[data-side="left"] #bubble { transform-origin: 0 100%; }
 #bubble.card { font-size: 11px; font-weight: 500; line-height: 1.35; }
 #bubble.card .text { display: block; white-space: pre-line; }
 #bubble.hidden { opacity: 0; transform: translateY(4px) scale(.9); pointer-events: none; }
+/* botones del globito (el vaso de agua) */
+#bubble .actions { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 2px; }
+#bubble .actions button {
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--bubble-fg);
+  border: 2px solid var(--bubble-border);
+  border-radius: 3px;
+  font: inherit;
+  cursor: pointer;
+}
+#bubble .actions button:first-child { background: var(--clawd); border-color: var(--clawd); color: #1c1816; }
+#bubble .actions button:hover { border-color: var(--clawd-bright); }
 
 /* Colita que apunta a la cabeza de Clawd (el centro de Clawd = la mitad de --cw desde su borde).
    ::before es el borde naranja y ::after el relleno oscuro encima. */
