@@ -387,17 +387,23 @@ function approveStartup(force) {
   execFile('reg.exe', ['query', STARTUP_APPROVED, '/v', 'Deskling'], { windowsHide: true }, (err) => { if (err) enable(); });
 }
 
+/** Confirma un cambio del menú, sin prometer de más si no se pudo guardar. */
+function sayChange(saved, text) {
+  if (saved) say(text);
+  else say(`${text} ⚠️ Pero no pude guardarlo: puede volver a como estaba cuando reinicies.`, { seconds: 30, face: 'squint' });
+}
+
 function setAutoStart(on) {
   config.autoStart = on;
-  saveConfig();
+  const saved = saveConfig();
   applyAutoStart(true);
-  say(on ? '🚀 ¡Listo! Cuando prendas la compu, aparezco solo.' : '👌 Ok, ya no arranco con Windows. Abrime con npm start.');
+  sayChange(saved, on ? '🚀 ¡Listo! Cuando prendas la compu, aparezco solo.' : '👌 Ok, ya no arranco con Windows. Abrime con npm start.');
 }
 
 function setCapture(on) {
   config.screenCapture = on;
-  saveConfig();
-  say(on
+  const saved = saveConfig();
+  sayChange(saved, on
     ? '👀 Ok, voy a mirar tu pantalla de vez en cuando (sin datos sensibles).'
     : '🙈 Listo, ya no miro tu pantalla. Solo veo títulos.');
 }

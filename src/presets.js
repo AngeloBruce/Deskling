@@ -80,11 +80,12 @@ function identity(petName, skin) {
   return `Sos ${petName}, un bichito ${skin.adjective} pixelado que vive en el escritorio de la persona y es su compañero de trabajo.`;
 }
 
-// Búsquedas en los catálogos. Con Object.hasOwn, un valor escrito a mano como
-// "constructor" no encuentra lo heredado del objeto y cae en el valor por defecto.
-const skinOf = (id) => (Object.hasOwn(SKINS, id) ? SKINS[id] : SKINS.naranja);
-const sizeOf = (id) => (Object.hasOwn(SIZES, id) ? SIZES[id] : SIZES.normal);
-const accessoryOf = (id) => (Object.hasOwn(ACCESSORIES, id) ? id : 'ninguno');
+// Búsquedas en los catálogos. Un valor escrito a mano como "constructor" no encuentra
+// lo heredado del objeto, y uno que no es texto no se convierte: caen en el valor por defecto.
+const inCatalog = (catalog, id) => typeof id === 'string' && Object.hasOwn(catalog, id);
+const skinOf = (id) => (inCatalog(SKINS, id) ? SKINS[id] : SKINS.naranja);
+const sizeOf = (id) => (inCatalog(SIZES, id) ? SIZES[id] : SIZES.normal);
+const accessoryOf = (id) => (inCatalog(ACCESSORIES, id) ? id : 'ninguno');
 
 function compose({ petName, skin, tone, content, userName }) {
   const name = userName

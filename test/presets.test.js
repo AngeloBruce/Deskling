@@ -45,11 +45,11 @@ test('sin nombre de persona no se habla de nombres', () => {
 });
 
 test('un valor fuera de los catálogos cae en el valor por defecto, también si es heredado', () => {
-  for (const id of ['noexiste', 'constructor', '__proto__', 'toString', undefined, null]) {
-    assert.equal(skinOf(id), SKINS.naranja, String(id));
-    assert.equal(sizeOf(id), SIZES.normal, String(id));
-    assert.equal(accessoryOf(id), 'ninguno', String(id));
-    assert.match(buildPersonality({ appearance: { skin: id } }), /^Sos Clawd, un bichito naranja/, String(id));
+  for (const id of ['noexiste', 'constructor', '__proto__', 'toString', undefined, null, 5, ['azul'], { toString: 1 }]) {
+    assert.equal(skinOf(id), SKINS.naranja, JSON.stringify(id));
+    assert.equal(sizeOf(id), SIZES.normal, JSON.stringify(id));
+    assert.equal(accessoryOf(id), 'ninguno', JSON.stringify(id));
+    assert.match(buildPersonality({ appearance: { skin: id } }), /^Sos Clawd, un bichito naranja/, JSON.stringify(id));
   }
   assert.equal(skinOf('azul'), SKINS.azul);
   assert.equal(sizeOf('grande'), SIZES.grande);
