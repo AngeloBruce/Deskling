@@ -1,8 +1,8 @@
 // =============================================================================
-// streaks.js — Las rachas: agua, foco, constancia y sin distracción.
+// streaks.js — Las rachas: agua, foco, constancia, sin distracción y las apps que elijas.
 //
-// Todo LOCAL (logs/streaks.json): por cada día solo guarda fechas y cantidades,
-// nunca nombres de apps ni títulos, y nada de esto se manda a la IA.
+// Todo LOCAL (logs/streaks.json): por cada día solo guarda fechas y cantidades, y de
+// apps solo las que elegiste en Ajustes, nunca títulos. Nada de esto se manda a la IA.
 // Están pensadas para acompañar, no para presionar:
 //   - hay días libres: un día sin cumplir no corta la racha si queda margen;
 //   - el récord queda guardado aunque la racha se corte.
@@ -13,10 +13,12 @@ const { today } = require('./stats');
 
 const DAY_CUT_HOURS = 4;
 const ACTIVE_SEC = 10 * 60;      // menos que esto no cuenta como un día de uso
+const APP_SEC = 10 * 60;         // lo mismo para la racha de una app
 const DISTRACT_MARGIN_SEC = 60;  // pasar de largo por una distracción no corta el día
 const BROKEN_MIN_DAYS = 3;       // una racha más corta se corta sin aviso
+const MAX_APPS = 30;             // apps distintas por día en el archivo (por si se edita a mano)
 
-const EMPTY_DAY = { water: 0, waterDone: false, waterAsked: 0, pomodoros: 0, activeSec: 0, distractSec: 0 };
+const EMPTY_DAY = { water: 0, waterDone: false, waterAsked: 0, pomodoros: 0, activeSec: 0, distractSec: 0, apps: {} };
 
 // closedOnly = recién se sabe cuando termina el día
 const KINDS = [
@@ -29,6 +31,27 @@ const KINDS = [
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const count = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+const own = (obj, key) => (Object.hasOwn(obj, key) ? obj[key] : undefined);
+
+/** El nombre de una app elegida: una línea corta y que no pise nada de los objetos. */
+function validApp(name) {
+  return typeof name === 'string' && name.length > 0 && name.length <= 60
+    && !/[\u0000-\u001f\u007f]/.test(name) && !['__proto__', 'constructor', 'prototype'].includes(name);
+}
+
+/** La racha de una app elegida. */
+function appKind(name) {
+  return {
+    id: `app:${name}`,
+    emoji: '💻',
+    label: name,
+    hint: 'Al menos 10 min en el día. Las apps privadas y el tiempo en distracciones no cuentan.',
+    done: (d) => count(own(d.apps, name)) >= APP_SEC,
+  };
+}
+
+/** ¿Es un id de racha que se puede guardar? */
+const validKind = (id) => KINDS.some((k) => k.id === id) || (id.startsWith('app:') && validApp(id.slice(4)));
 
 /** ¿Es una fecha real "AAAA-MM-DD"? */
 function isDate(s) {
@@ -47,6 +70,10 @@ function cleanData(raw) {
   const days = {};
   for (const [date, d] of Object.entries(isObject(raw.days) ? raw.days : {})) {
     if (!isDate(date) || !isObject(d)) continue;
+    const apps = Object.create(null);
+    for (const [name, sec] of Object.entries(isObject(d.apps) ? d.apps : {}).slice(0, MAX_APPS)) {
+      if (validApp(name) && count(sec)) apps[name] = count(sec);
+    }
     days[date] = {
       water: count(d.water),
       waterDone: d.waterDone === true,
@@ -54,15 +81,15 @@ function cleanData(raw) {
       pomodoros: count(d.pomodoros),
       activeSec: count(d.activeSec),
       distractSec: count(d.distractSec),
+      apps,
     };
   }
-  const best = {};
-  const brokenSeen = {};
-  for (const { id } of KINDS) {
-    best[id] = count(raw.best?.[id]);
-    brokenSeen[id] = isDate(raw.brokenSeen?.[id]) ? raw.brokenSeen[id] : '';
-  }
-  return { days, best, brokenSeen };
+  const best = Object.create(null);
+  for (const [id, n] of Object.entries(isObject(raw.best) ? raw.best : {})) if (validKind(id) && count(n)) best[id] = count(n);
+  const brokenSeen = Object.create(null);
+  for (const [id, date] of Object.entries(isObject(raw.brokenSeen) ? raw.brokenSeen : {})) if (validKind(id) && isDate(date)) brokenSeen[id] = date;
+  const rewardsSeen = Array.isArray(raw.rewardsSeen) ? [...new Set(raw.rewardsSeen.filter((r) => typeof r === 'string' && r.length <= 60))].slice(0, 50) : [];
+  return { days, best, brokenSeen, rewardsSeen };
 }
 
 /**
@@ -99,6 +126,12 @@ function walk(days, kind, restPerWeek, todayKey) {
   return { current, best, broken };
 }
 
+/** Las rachas fijas más las de las apps elegidas (sin repetir ni nombres raros). */
+function kindsFor(apps) {
+  const names = [...new Set((apps || []).filter(validApp))];
+  return [...KINDS, ...names.map(appKind)];
+}
+
 class Streaks {
   /**
    * @param {string|null} file dónde guardar (null = no guardar, para las pruebas)
@@ -133,7 +166,7 @@ class Streaks {
   /** Los datos de hoy, para sumarles algo. */
   rec() {
     this.dirty = true;
-    return (this.data.days[this.day()] ??= { ...EMPTY_DAY });
+    return (this.data.days[this.day()] ??= { ...EMPTY_DAY, apps: Object.create(null) });
   }
 
   /** Lo que ya hay de hoy, sin crear el día. */
@@ -143,6 +176,14 @@ class Streaks {
     const d = this.rec();
     d.activeSec += sec;
     if (distracted) d.distractSec += sec;
+  }
+
+  /** Tiempo en una de las apps elegidas. */
+  addApp(name, sec) {
+    if (!validApp(name)) return;
+    const d = this.rec();
+    if (!Object.hasOwn(d.apps, name) && Object.keys(d.apps).length >= MAX_APPS) return;
+    d.apps[name] = count(own(d.apps, name)) + sec;
   }
 
   pomodoro() {
@@ -174,11 +215,11 @@ class Streaks {
   glasses() { return this.peek().water; }
 
   /** Cómo va cada racha. El récord solo puede subir. */
-  status(restPerWeek) {
+  status(restPerWeek, apps = []) {
     const todayKey = this.day();
-    return KINDS.map((kind) => {
+    return kindsFor(apps).map((kind) => {
       const { current, best } = walk(this.data.days, kind, restPerWeek, todayKey);
-      if (best > this.data.best[kind.id]) {
+      if (best > (this.data.best[kind.id] || 0)) {
         this.data.best[kind.id] = best;
         this.dirty = true;
       }
@@ -188,7 +229,7 @@ class Streaks {
         label: kind.label,
         hint: kind.hint,
         current,
-        best: this.data.best[kind.id],
+        best: this.data.best[kind.id] || 0,
         doneToday: !kind.closedOnly && !!kind.done(this.peek()),
       };
     });
@@ -198,21 +239,33 @@ class Streaks {
     return this.status(restPerWeek).find((s) => s.id === id).current;
   }
 
+  /** El mejor récord de una racha, ya guardado. */
+  best(id) { return this.data.best[id] || 0; }
+
   /** Las rachas que se cortaron y todavía no se avisaron. Se mira una vez por día. */
-  takeBroken(restPerWeek) {
+  takeBroken(restPerWeek, apps = []) {
     const todayKey = this.day();
     if (this.brokenChecked === todayKey) return [];
     this.brokenChecked = todayKey;
     const out = [];
-    for (const kind of KINDS) {
+    for (const kind of kindsFor(apps)) {
       const { broken } = walk(this.data.days, kind, restPerWeek, todayKey);
-      if (!broken || broken.date <= this.data.brokenSeen[kind.id]) continue;
+      if (!broken || broken.date <= (this.data.brokenSeen[kind.id] || '')) continue;
       this.data.brokenSeen[kind.id] = broken.date;
       this.dirty = true;
       if (broken.days >= BROKEN_MIN_DAYS) out.push({ id: kind.id, label: kind.label, days: broken.days });
     }
-    this.status(restPerWeek); // deja el récord al día antes de mostrarlo
-    return out.map((b) => ({ ...b, best: this.data.best[b.id] }));
+    this.status(restPerWeek, apps); // deja el récord al día antes de mostrarlo
+    return out.map((b) => ({ ...b, best: this.best(b.id) }));
+  }
+
+  /** Anota un premio como avisado. Devuelve true si era nuevo. */
+  markReward(id) {
+    if (this.data.rewardsSeen.includes(id)) return false;
+    this.data.rewardsSeen.push(id);
+    this.dirty = true;
+    this.save();
+    return true;
   }
 }
 

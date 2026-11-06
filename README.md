@@ -142,7 +142,9 @@ Cuatro rachas, que podés ver y apagar en **Ajustes → Logros**: 💧 agua, �
 - **El vaso de agua:** Clawd te ofrece un vaso. Tocás *Ya tengo uno* y, 2 avisos después, te pregunta si lo terminaste. Con *Sí* suma uno; con *Todavía no* vuelve a preguntar al aviso siguiente. Nadie comprueba si tomaste: vale tu palabra. Si no contestás, no pasa nada.
 - **Sin presión:** hay días libres (2 por semana, se puede cambiar), nunca avisa que estás por perder una racha y el récord queda guardado aunque se corte.
 - **El día termina a las 4 de la mañana:** trasnochar no cuenta como un día nuevo.
-- **Privacidad:** `logs/streaks.json` guarda solo fechas y cantidades, nunca nombres de apps ni títulos, y nada de esto va a la IA.
+- **Rachas de tus apps:** en Ajustes → Logros podés elegir hasta 10 apps (por ejemplo, `VS Code`). Cada una suma el día con 10 min de uso. Las apps privadas y el tiempo en distracciones no cuentan.
+- **Premios:** algunas skins y accesorios se ganan con el récord de una racha: la skin Agua (7 días de agua), los Audífonos (5 de foco), el Brote (5 sin distracción) y la skin Dorado (14 de constancia). Como van por el récord, no se pierden si la racha se corta.
+- **Privacidad:** `logs/streaks.json` guarda solo fechas y cantidades, y de apps solo las que elegiste, nunca títulos. Nada de esto va a la IA.
 
 ## Avisos de Claude Code
 

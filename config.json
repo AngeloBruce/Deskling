@@ -89,7 +89,8 @@
     "enabled": true,
     "waterGoal": 4,
     "waterAfterReminders": 2,
-    "restDaysPerWeek": 2
+    "restDaysPerWeek": 2,
+    "apps": []
   },
   "claudeCode": {
     "enabled": true,

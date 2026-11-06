@@ -169,7 +169,46 @@ test('solo guarda fechas y cantidades', () => {
   s.save();
   const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
   assert.deepEqual(Object.keys(saved.days), ['2026-11-03']);
-  for (const v of Object.values(saved.days['2026-11-03'])) assert.ok(['number', 'boolean'].includes(typeof v));
+  const { apps, ...rest } = saved.days['2026-11-03'];
+  for (const v of Object.values(rest)) assert.ok(['number', 'boolean'].includes(typeof v));
+  assert.deepEqual(apps, {}); // ninguna app elegida: no se guarda ninguna
+});
+
+test('racha de una app elegida: 10 min al día', () => {
+  const c = clock();
+  const s = new Streaks(null, { now: c.now });
+  const app = () => s.status(0, ['VS Code']).find((x) => x.id === 'app:VS Code');
+  c.at('2026-11-03');
+  s.addApp('VS Code', 600);
+  c.at('2026-11-04');
+  s.addApp('VS Code', 300);
+  assert.equal(app().current, 1);
+  assert.equal(app().doneToday, false);
+  s.addApp('VS Code', 300);
+  assert.equal(app().current, 2);
+  assert.equal(app().label, 'VS Code');
+  // sin elegirla no aparece, pero el récord queda
+  assert.equal(s.status(0).some((x) => x.id.startsWith('app:')), false);
+  assert.equal(s.best('app:VS Code'), 2);
+});
+
+test('nombres de app raros no se guardan ni rompen nada', () => {
+  const c = clock();
+  const s = new Streaks(null, { now: c.now });
+  c.at('2026-11-03');
+  for (const n of ['__proto__', 'constructor', '', 'a\nb', 'x'.repeat(61), 5]) s.addApp(n, 600);
+  assert.deepEqual(Object.keys(s.peek().apps), []);
+  assert.equal(Object.getPrototypeOf({}).polluted, undefined);
+  const st = s.status(0, ['__proto__', 'ok', 'ok']);
+  assert.deepEqual(st.filter((x) => x.id.startsWith('app:')).map((x) => x.id), ['app:ok']);
+});
+
+test('un premio se avisa una sola vez y queda guardado', () => {
+  const file = tempFile();
+  const s = new Streaks(file);
+  assert.equal(s.markReward('skin:agua'), true);
+  assert.equal(s.markReward('skin:agua'), false);
+  assert.deepEqual(new Streaks(file).data.rewardsSeen, ['skin:agua']);
 });
 
 test('un archivo roto queda con copia y no tumba nada', () => {
@@ -217,7 +256,7 @@ test('valores escritos a mano se ignoran', () => {
   assert.equal(s.data.days['2026-11-02'].activeSec, 0);
   assert.equal(focus(s, 0).current, 1);
   assert.equal(s.data.best.water, 7);
-  assert.equal(s.data.brokenSeen.focus, '');
+  assert.equal(s.data.brokenSeen.focus, undefined);
   assert.ok(!Object.hasOwn(s.data.best, 'otra'));
 });
 

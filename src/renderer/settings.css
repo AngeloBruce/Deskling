@@ -96,6 +96,9 @@ small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; f
 .chips button:hover { border-color: var(--muted); }
 .chips button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .chips i { width: 14px; height: 14px; }
+.chips button:disabled { opacity: .5; cursor: not-allowed; border-style: dashed; }
+#reward-list { display: grid; gap: 6px; }
+.streak.locked { opacity: .65; }
 
 /* Rachas: una fila por racha, con los días a la derecha */
 #streak-list { display: grid; gap: 6px; margin-bottom: 14px; }

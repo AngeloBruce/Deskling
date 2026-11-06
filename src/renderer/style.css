@@ -62,8 +62,8 @@ body[data-side="left"] { align-items: flex-start; }
   transition: opacity .25s, transform .25s;
 }
 body[data-side="left"] #bubble { transform-origin: 0 100%; }
-/* el gorrito y la corona sobresalen por arriba: el globito sube para no pisarlos */
-#bubble:has(~ #clawd:is([data-accessory="gorrito"], [data-accessory="corona"])) { margin-bottom: calc(6px + var(--cw) / 10); }
+/* el gorrito, la corona y el brote sobresalen por arriba: el globito sube para no pisarlos */
+#bubble:has(~ #clawd:is([data-accessory="gorrito"], [data-accessory="corona"], [data-accessory="brote"])) { margin-bottom: calc(6px + var(--cw) / 10); }
 /* el texto va en un span aparte: máximo 4 líneas y si es más largo termina en "…"
    (el overflow va en el span para no cortar la colita del globito) */
 #bubble .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
@@ -124,7 +124,9 @@ body[data-side="left"] #bubble::after  { right: auto; left: calc(var(--cw) / 2 -
 #clawd[data-accessory="gorrito"] .acc-gorrito,
 #clawd[data-accessory="lentes"]  .acc-lentes,
 #clawd[data-accessory="corona"]  .acc-corona,
-#clawd[data-accessory="mono"]    .acc-mono { display: inline; }
+#clawd[data-accessory="mono"]    .acc-mono,
+#clawd[data-accessory="audifonos"] .acc-audifonos,
+#clawd[data-accessory="brote"]   .acc-brote { display: inline; }
 
 /* --- Caras: solo se ve el grupo de ojos que dice data-face --- */
 #clawd .eyes { display: none; }

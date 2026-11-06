@@ -95,6 +95,32 @@ function migrate(mine) {
     : { ...mine, personalityPreset: 'custom' };
 }
 
+/**
+ * El proveedor de IA lo elige la ventana de ajustes, pero config.json se puede editar a mano:
+ * un nombre que no existe (o una lista de proveedores rota) dejaba la app sin arrancar.
+ * Corrige `config` en memoria para que siempre quede uno que sirva.
+ * @returns {string} qué se corrigió, para el log ('' = nada)
+ */
+function fixProvider(config, defaults) {
+  const valid = (p) => isObject(p) && ['baseURL', 'model', 'envKey'].every((k) => typeof p[k] === 'string' && p[k]);
+  const all = isObject(config.providers) ? Object.entries(config.providers) : [];
+  const usable = Object.fromEntries(all.filter(([, p]) => valid(p)));
+  let fixed = '';
+  if (!Object.keys(usable).length) {
+    config.providers = mergeConfig({}, defaults.providers);
+    fixed = 'la lista de proveedores no servía: uso la de fábrica';
+  } else {
+    if (Object.keys(usable).length !== all.length) fixed = 'se ignoraron proveedores incompletos';
+    config.providers = usable;
+  }
+  if (typeof config.provider !== 'string' || !Object.hasOwn(config.providers, config.provider)) {
+    const was = typeof config.provider === 'string' ? config.provider.slice(0, 40) : typeof config.provider;
+    config.provider = Object.hasOwn(config.providers, defaults.provider) ? defaults.provider : Object.keys(config.providers)[0];
+    fixed = `el proveedor "${was}" no existe: uso "${config.provider}"`;
+  }
+  return fixed;
+}
+
 const int = (min, max) => ({ type: 'int', min, max });
 const list = (extra = {}) => ({ type: 'list', ...extra });
 const oneOf = (catalog) => ({ type: 'enum', values: Object.keys(catalog) });
@@ -131,6 +157,7 @@ const SCHEMA = {
   'streaks.waterGoal': int(1, 12),
   'streaks.waterAfterReminders': int(1, 8),
   'streaks.restDaysPerWeek': int(0, 3),
+  'streaks.apps': list({ max: 10 }),
   'summary.enabled': { type: 'bool' },
   'summary.hour': int(0, 23),
   'summary.afterHour': int(0, 23),
@@ -183,7 +210,7 @@ function cleanValue(rule, v, providers) {
       const items = v.filter((s) => typeof s === 'string')
         .map((s) => (rule.lower ? s.toLowerCase() : s).trim().slice(0, 200))
         .filter(Boolean);
-      return [...new Set(items)].slice(0, 200);
+      return [...new Set(items)].slice(0, rule.max || 200);
     }
     default:
       return undefined;
@@ -224,4 +251,4 @@ function limits() {
   return out;
 }
 
-module.exports = { mergeConfig, diffConfig, readUserConfig, samePath, writeConfig, migrate, sanitize, editableView, limits, getPath };
+module.exports = { mergeConfig, diffConfig, readUserConfig, samePath, writeConfig, migrate, fixProvider, sanitize, editableView, limits, getPath };

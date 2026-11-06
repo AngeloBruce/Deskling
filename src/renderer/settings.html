@@ -100,7 +100,7 @@
     <section id="logros" role="tabpanel" hidden>
       <h2>Rachas</h2>
       <div id="streak-list"></div>
-      <p class="note">Solo se guardan fechas y cantidades en tu PC. Nada de esto se envía a la IA.</p>
+      <p class="note">Solo se guardan en tu PC fechas, cantidades y los nombres de las apps que elijas abajo. Nada de esto se envía a la IA.</p>
       <label class="check"><input type="checkbox" data-path="streaks.enabled"> Contar rachas y preguntar por el agua</label>
       <div class="grid">
         <label class="field">Vasos de agua al día<input type="number" data-path="streaks.waterGoal"></label>
@@ -108,6 +108,14 @@
         <label class="field">Días libres por semana<input type="number" data-path="streaks.restDaysPerWeek"></label>
       </div>
       <p class="note">Un aviso dura lo que marca "Consejo cada" en Foco y bienestar. Un día libre no corta la racha ni la hace crecer.</p>
+      <label class="field">Apps con racha propia
+        <textarea data-path="streaks.apps" data-type="list" rows="3"></textarea>
+        <small>Una por línea, como aparecen en el resumen (hasta 10). Suma el día con 10 min de uso. Las apps privadas y el tiempo en distracciones no cuentan.</small>
+        <small id="today-apps"></small>
+      </label>
+      <h2>Premios</h2>
+      <p class="note">Se ganan con el récord de una racha, así que no se pierden aunque la racha se corte.</p>
+      <div id="reward-list"></div>
     </section>
 
     <section id="privacidad" role="tabpanel" hidden>

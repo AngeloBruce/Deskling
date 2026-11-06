@@ -24,7 +24,7 @@ const settings = require('./settings');
 const presets = require('./presets');
 const { Brain } = require('./brain');
 const { Pomodoro } = require('./focus');
-const { DayStats } = require('./stats');
+const { DayStats, prettyApp } = require('./stats');
 const { Streaks, WaterFlow } = require('./streaks');
 const { startSensors, ocr } = require('./sensors');
 
@@ -82,6 +82,7 @@ function settingsReadable() {
   return configRead.status === 'ok' || configRead.status === 'missing';
 }
 const config = loadConfig();
+const providerFixed = settings.fixProvider(config, defaults); // se anota al arrancar
 
 /**
  * Guarda lo que se cambia desde el menú o la ventana de ajustes. Con `npm start`
@@ -471,20 +472,34 @@ function openSettings() {
 /** Lo que necesita la ventana de ajustes. De la key solo va si existe, nunca su valor. */
 function settingsData() {
   const entries = (catalog) => Object.entries(catalog).map(([id, v]) => ({ id, ...v }));
+  const o = streakOpts();
+  const items = streaks.status(o.restDaysPerWeek, o.apps); // primero: deja los récords al día
+  const lockInfo = (unlock) => (unlock ? { locked: !isUnlocked({ unlock }), need: rewardNeed(unlock) } : {});
   return {
     values: settings.editableView(config),
     limits: settings.limits(),
     catalog: {
       personalities: entries(presets.PERSONALITIES).map(({ id, label, hint }) => ({ id, label, hint })),
-      skins: entries(presets.SKINS).map(({ id, label, main }) => ({ id, label, color: main })),
-      accessories: entries(presets.ACCESSORIES),
+      skins: entries(presets.SKINS).map(({ id, label, main, unlock }) => ({ id, label, color: main, ...lockInfo(unlock) })),
+      accessories: entries(presets.ACCESSORIES).map(({ id, label, unlock }) => ({ id, label, ...lockInfo(unlock) })),
       sizes: entries(presets.SIZES),
       providers: Object.entries(config.providers).map(([id, p]) => ({ id, hasKey: !!process.env[p.envKey] })),
     },
     streaks: {
-      items: streaks.status(streakOpts().restDaysPerWeek),
+      items,
       glasses: streaks.glasses(),
-      goal: streakOpts().waterGoal,
+      goal: o.waterGoal,
+      rewards: presets.REWARDS.map((r) => ({
+        label: r.label,
+        kind: r.kind,
+        unlocked: isUnlocked(r),
+        need: rewardNeed(r.unlock),
+        best: streaks.best(r.unlock.streak),
+        days: r.unlock.days,
+      })),
+      // para elegir apps con racha: las más usadas de hoy, como las nombra el resumen (sin la privada)
+      todayApps: Object.entries(stats.roll().apps).filter(([n]) => n !== prettyApp('privada'))
+        .sort((a, b) => b[1] - a[1]).slice(0, 8).map(([n]) => n),
     },
   };
 }
@@ -495,12 +510,14 @@ function wireSettings() {
   ipcMain.on('settings-preview', (e, look) => {
     if (!fromSettings(e)) return;
     const clean = settings.sanitize({ appearance: look }).appearance;
-    previewAppearance({ ...config.appearance, ...clean });
+    previewAppearance({ ...config.appearance, ...dropLocked(clean) });
   });
   ipcMain.handle('settings-save', (e, patch) => {
     if (!fromSettings(e)) return { ok: false };
     const prev = settings.mergeConfig({}, config);
-    Object.assign(config, settings.mergeConfig(config, settings.sanitize(patch, Object.keys(config.providers))));
+    const clean = settings.sanitize(patch, Object.keys(config.providers));
+    if (clean.appearance) clean.appearance = dropLocked(clean.appearance);
+    Object.assign(config, settings.mergeConfig(config, clean));
     const ok = saveConfig();
     applyConfig(prev);
     return { ok, data: settingsData() };
@@ -852,6 +869,7 @@ app.whenReady().then(() => {
   const key = process.env[p.envKey] || '';
   const huella = key ? require('crypto').createHash('sha256').update(key).digest('hex').slice(0, 8) : '-';
   errorLog(`arranque: datos=${DATA} empaquetada=${app.isPackaged} config=${configRead.status} carpeta=${process.cwd()}`);
+  if (providerFixed) errorLog(`config: ${providerFixed}`);
   errorLog(`arranque: proveedor=${config.provider} key=${!key ? 'falta' : fromEnvFile.has(p.envKey) ? '.env' : 'variable de Windows'} huella=${huella}`);
   brain = new Brain(brainOpts());
 
@@ -929,7 +947,7 @@ app.whenReady().then(() => {
 
   // Resumen del día: contar el tiempo en cada app y ver si ya toca mostrarlo.
   setInterval(trackDay, 10 * 1000);
-  setInterval(() => { stats.save(); streaks.save(); checkSummaryTime(); markRunning(); }, 60 * 1000);
+  setInterval(() => { stats.save(); announceRewards(); streaks.save(); checkSummaryTime(); markRunning(); }, 60 * 1000);
 });
 
 /**
@@ -1162,7 +1180,18 @@ function trackDay() {
   if (!w || powerMonitor.getSystemIdleTime() > 300) return;
   stats.addApp(w.private ? 'privada' : w.process, 10);
   if (state.distractSince) stats.distract(10);
-  if (streakOpts().enabled) streaks.addActive(10, !!state.distractSince);
+  const o = streakOpts();
+  if (!o.enabled) return;
+  streaks.addActive(10, !!state.distractSince);
+  // las apps privadas y el rato en una distracción nunca suman a la racha de una app
+  const chosen = !w.private && !state.distractSince && chosenApp(w.process, o.apps);
+  if (chosen) streaks.addApp(chosen, 10);
+}
+
+/** ¿La app activa es una de las elegidas? Vale el nombre del programa o el del resumen ("code" o "VS Code"). */
+function chosenApp(proc, apps) {
+  const names = [String(proc).toLowerCase(), prettyApp(proc).toLowerCase()];
+  return apps.find((a) => names.includes(a.toLowerCase()));
 }
 
 // =============================================================================
@@ -1231,7 +1260,7 @@ function focusStreakNote() {
 function announceBroken() {
   const o = streakOpts();
   if (!o.enabled || state.paused || state.busy || pomodoro.working || powerMonitor.getSystemIdleTime() > 300) return false;
-  const broken = streaks.takeBroken(o.restDaysPerWeek);
+  const broken = streaks.takeBroken(o.restDaysPerWeek, o.apps);
   if (!broken.length) return false;
   const list = broken.map((b) => `${b.label}: ${daysText(b.days)}`).join(', ');
   const best = Math.max(...broken.map((b) => b.best));
@@ -1239,11 +1268,36 @@ function announceBroken() {
   return true;
 }
 
+// --- Premios: skins y accesorios que se desbloquean con el récord de una racha (presets.js) ---
+// Van por el récord, que nunca baja: un premio ganado no se pierde aunque se corte la racha.
+const STREAK_NAMES = { water: 'de agua', focus: 'de foco', active: 'de constancia', calm: 'sin distracción' };
+const rewardNeed = (u) => `racha ${STREAK_NAMES[u.streak]} de ${daysText(u.days)}`;
+const isUnlocked = (item) => !item?.unlock || streaks.best(item.unlock.streak) >= item.unlock.days;
+
+/** Saca de una apariencia la skin o el accesorio que todavía no ganaste. */
+function dropLocked(look = {}) {
+  const out = { ...look };
+  if (out.skin && !isUnlocked(presets.SKINS[out.skin])) delete out.skin;
+  if (out.accessory && !isUnlocked(presets.ACCESSORIES[out.accessory])) delete out.accessory;
+  return out;
+}
+
+/** Avisa un premio nuevo, de a uno por minuto. */
+function announceRewards() {
+  const o = streakOpts();
+  if (!o.enabled || state.paused || state.busy || pomodoro.working || powerMonitor.getSystemIdleTime() > 300) return;
+  streaks.status(o.restDaysPerWeek, o.apps); // deja los récords al día
+  const r = presets.REWARDS.find((x) => isUnlocked(x) && !streaks.data.rewardsSeen.includes(`${x.kind}:${x.id}`));
+  if (!r || !streaks.markReward(`${r.kind}:${r.id}`)) return;
+  const what = r.kind === 'skin' ? `la skin ${r.label}` : `el accesorio ${r.label}`;
+  say(`🎁 ¡Ganaste ${what} con tu ${rewardNeed(r.unlock)}! Está en Ajustes → Apariencia.`, { face: 'happy', seconds: 20, sound: config.sound });
+}
+
 /** La línea de rachas para la tarjeta del resumen. No va a la IA: solo se muestra. */
 function streakLine() {
   const o = streakOpts();
   if (!o.enabled) return '';
-  const running = streaks.status(o.restDaysPerWeek).filter((s) => s.current > 0);
+  const running = streaks.status(o.restDaysPerWeek, o.apps).filter((s) => s.current > 0);
   return running.length ? `🔥 Rachas: ${running.map((s) => `${s.emoji} ${s.current}`).join(' · ')}` : '';
 }
 

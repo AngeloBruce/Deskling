@@ -56,6 +56,9 @@ const SKINS = {
   morado: { label: 'Morado', adjective: 'morado', main: '#a07ad6', dark: '#7d58b3', shade: '#8c67c0', arm: '#966fcb', bright: '#b898e6' },
   rosa: { label: 'Rosa', adjective: 'rosa', main: '#e58fb4', dark: '#c26a90', shade: '#d07ca0', arm: '#da85aa', bright: '#f2a9c8' },
   gris: { label: 'Gris', adjective: 'gris', main: '#a3a3ad', dark: '#7b7b85', shade: '#8e8e98', arm: '#9999a3', bright: '#bcbcc6' },
+  // premios: unlock = qué récord de racha hace falta (streaks.js → KINDS)
+  agua: { label: 'Agua', adjective: 'celeste', main: '#5cc4c4', dark: '#3d9a9a', shade: '#4aaeae', arm: '#53baba', bright: '#7fdede', unlock: { streak: 'water', days: 7 } },
+  dorado: { label: 'Dorado', adjective: 'dorado', main: '#e0b54a', dark: '#b88e2e', shade: '#c9a03b', arm: '#d6ab43', bright: '#f2cd6a', unlock: { streak: 'active', days: 14 } },
 };
 
 // Los dibujos están en renderer/index.html (.acc-<clave>).
@@ -65,7 +68,15 @@ const ACCESSORIES = {
   lentes: { label: 'Lentes' },
   corona: { label: 'Corona' },
   mono: { label: 'Moño' },
+  audifonos: { label: 'Audífonos', unlock: { streak: 'focus', days: 5 } },
+  brote: { label: 'Brote', unlock: { streak: 'calm', days: 5 } },
 };
+
+/** Los premios: skins y accesorios que se desbloquean con el récord de una racha. */
+const REWARDS = [
+  ...Object.entries(SKINS).map(([id, v]) => ({ id, kind: 'skin', label: v.label, unlock: v.unlock })),
+  ...Object.entries(ACCESSORIES).map(([id, v]) => ({ id, kind: 'accessory', label: v.label, unlock: v.unlock })),
+].filter((r) => r.unlock);
 
 // Múltiplos de 16 sobre la grilla de 32x26: así cada píxel del dibujo mide un número entero.
 const SIZES = {
@@ -115,4 +126,4 @@ function buildPersonality(config) {
 // Quien lo tenga sin cambios pasa a "clasico"; cualquier otro texto se respeta como propio.
 const LEGACY_PERSONALITY = buildPersonality({});
 
-module.exports = { PERSONALITIES, SKINS, ACCESSORIES, SIZES, skinOf, sizeOf, accessoryOf, buildPersonality, LEGACY_PERSONALITY };
+module.exports = { PERSONALITIES, SKINS, ACCESSORIES, SIZES, REWARDS, skinOf, sizeOf, accessoryOf, buildPersonality, LEGACY_PERSONALITY };

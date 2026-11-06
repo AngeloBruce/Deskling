@@ -56,6 +56,28 @@ test('un valor fuera de los catálogos cae en el valor por defecto, también si 
   assert.equal(accessoryOf('corona'), 'corona');
 });
 
+test('los premios piden una racha que existe y dejan gratis lo de siempre', () => {
+  const { REWARDS, ACCESSORIES } = require('../src/presets');
+  const { KINDS } = require('../src/streaks');
+  assert.ok(REWARDS.length >= 4);
+  for (const r of REWARDS) {
+    assert.ok(KINDS.some((k) => k.id === r.unlock.streak), r.id);
+    assert.ok(Number.isInteger(r.unlock.days) && r.unlock.days > 0, r.id);
+  }
+  for (const id of ['naranja', 'azul', 'verde', 'morado', 'rosa', 'gris']) assert.equal(SKINS[id].unlock, undefined, id);
+  for (const id of ['ninguno', 'gorrito', 'lentes', 'corona', 'mono']) assert.equal(ACCESSORIES[id].unlock, undefined, id);
+});
+
+test('todos los accesorios tienen su dibujo en las dos poses', () => {
+  const { ACCESSORIES } = require('../src/presets');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'style.css'), 'utf8');
+  for (const id of Object.keys(ACCESSORIES).filter((a) => a !== 'ninguno')) {
+    assert.equal(html.split(`class="acc acc-${id}"`).length - 1, 2, id);
+    assert.match(css, new RegExp(`\\[data-accessory="${id}"\\]\\s+\\.acc-${id}`), id);
+  }
+});
+
 test('todas las skins tienen sus colores', () => {
   for (const [id, skin] of Object.entries(SKINS)) {
     for (const k of ['main', 'dark', 'shade', 'arm', 'bright']) assert.match(skin[k], /^#[0-9a-f]{6}$/, `${id}.${k}`);

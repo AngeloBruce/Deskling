@@ -57,6 +57,14 @@ function buildChoices(path, items) {
     b.type = 'button';
     b.setAttribute('role', 'radio');
     b.dataset.value = item.id;
+    // premio que todavía no ganaste: se ve, pero no se puede elegir (main también lo revisa al guardar)
+    if (item.locked) {
+      b.disabled = true;
+      b.title = `Se gana con una ${item.need}.`;
+      b.append('🔒 ');
+    } else if (item.need) {
+      b.title = `Premio: ${item.need}.`;
+    }
     if (item.color) {
       const swatch = document.createElement('i');
       swatch.style.background = item.color;
@@ -71,7 +79,7 @@ function buildChoices(path, items) {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
     if (!step) return;
     e.preventDefault();
-    const buttons = [...group.querySelectorAll('button')];
+    const buttons = [...group.querySelectorAll('button:not(:disabled)')];
     const at = buttons.indexOf(document.activeElement);
     const next = buttons[(at + step + buttons.length) % buttons.length];
     next.click();
@@ -142,6 +150,26 @@ function drawStreaks() {
     count.append(best);
 
     row.append(emoji, name, count);
+    return row;
+  }));
+
+  const { rewards, todayApps } = data.streaks;
+  document.getElementById('today-apps').textContent = todayApps.length ? `Hoy usaste: ${todayApps.join(', ')}.` : '';
+  document.getElementById('reward-list').replaceChildren(...rewards.map((r) => {
+    const row = document.createElement('div');
+    row.className = r.unlocked ? 'streak' : 'streak locked';
+    const icon = document.createElement('span');
+    icon.textContent = r.unlocked ? '🎁' : '🔒';
+    const name = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = `${r.kind === 'skin' ? 'Skin' : 'Accesorio'}: ${r.label}`;
+    const hint = document.createElement('small');
+    hint.textContent = r.unlocked ? 'Ganado. Elígelo en Apariencia.' : `Se gana con una ${r.need}.`;
+    name.append(title, hint);
+    const progress = document.createElement('div');
+    progress.className = 'days';
+    progress.textContent = r.unlocked ? '✓' : `${Math.min(r.best, r.days)} / ${r.days}`;
+    row.append(icon, name, progress);
     return row;
   }));
 }

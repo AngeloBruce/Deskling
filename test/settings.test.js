@@ -135,6 +135,43 @@ test('sanitize: una lista sin vacíos ni repetidos, y palabras de distracción e
   assert.deepEqual(s.sanitize({ privateApps: [] }).privateApps, []);
 });
 
+test('fixProvider: un proveedor que no existe pasa al de fábrica', () => {
+  const defaults = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config.json'), 'utf8'));
+  const cfg = s.mergeConfig(defaults, { provider: 'grok' });
+  assert.match(s.fixProvider(cfg, defaults), /grok/);
+  assert.equal(cfg.provider, 'groq');
+  const ok = s.mergeConfig(defaults, {});
+  assert.equal(s.fixProvider(ok, defaults), '');
+  assert.equal(ok.provider, 'groq');
+});
+
+test('fixProvider: una lista rota o incompleta no tumba nada', () => {
+  const defaults = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config.json'), 'utf8'));
+  for (const providers of [5, null, [], {}, { groq: 'x' }, { constructor: {} }]) {
+    const cfg = { ...defaults, providers, provider: 'groq' };
+    assert.ok(s.fixProvider(cfg, defaults), JSON.stringify(providers));
+    assert.equal(cfg.provider, 'groq');
+    assert.equal(cfg.providers.groq.envKey, 'GROQ_API_KEY');
+  }
+  // con solo uno propio que sirve, se queda con ese
+  const mine = { baseURL: 'http://127.0.0.1:1234/v1', model: 'm', envKey: 'MI_KEY' };
+  const cfg = { ...defaults, providers: { local: mine, roto: {} }, provider: 'groq' };
+  s.fixProvider(cfg, defaults);
+  assert.equal(cfg.provider, 'local');
+  assert.deepEqual(Object.keys(cfg.providers), ['local']);
+  for (const provider of [undefined, 7, 'constructor', '__proto__']) {
+    const c = s.mergeConfig(defaults, {});
+    c.provider = provider;
+    s.fixProvider(c, defaults);
+    assert.equal(c.provider, 'groq', String(provider));
+  }
+});
+
+test('sanitize: como mucho 10 apps con racha', () => {
+  const apps = Array.from({ length: 15 }, (_, i) => `app${i}`);
+  assert.equal(s.sanitize({ streaks: { apps } }).streaks.apps.length, 10);
+});
+
 test('editableView: no muestra proveedores ni el puerto', () => {
   const view = s.editableView({ sound: true, providers: { groq: { envKey: 'X' } }, claudeCode: { port: 1, enabled: true } });
   assert.deepEqual(view, { sound: true, claudeCode: { enabled: true } });
