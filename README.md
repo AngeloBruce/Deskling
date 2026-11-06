@@ -158,6 +158,8 @@ Cuatro rachas, que podés ver y apagar en **Ajustes → Logros**: 💧 agua, �
 Cuando Claude termina o te pide permiso, Clawd te avisa (si no estás mirando la app de Claude, la terminal o VS Code).
 Si no vas a verlo en `nagMinutes`, se enoja 😤. El hook solo habla con `127.0.0.1` y si Clawd está cerrado no hace nada.
 
+Si Clawd se cierra de golpe, `logs/errors.log` dice por qué: cada cierre queda anotado con su motivo, y si la vez anterior terminó sin avisar (la cerró otro programa, se cortó la luz o falló), lo anota al volver a abrir con la última hora en que estaba vivo. También anota cuándo se suspende y vuelve la PC.
+
 Depuración: con `CLAWD_DEBUG=1` escribe todo lo que pasa en `logs/debug.log`. Con `CLAWD_DATA_DIR=<carpeta>` usa esa carpeta para los datos, y así podés probar sin tocar los tuyos.
 
 ## Estructura

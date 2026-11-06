@@ -319,6 +319,7 @@ let leaving = false;
 function goodbye() {
   if (leaving) return;
   leaving = true;
+  quitReason ||= 'desde el menú';
   if (!win?.isVisible()) return app.quit(); // si estaba escondido, no hay nada que mostrar
   win.webContents.send('goodbye');
   setTimeout(() => app.quit(), 1700); // lo que dura la animación "bye" de style.css
@@ -771,8 +772,50 @@ function wireSensors() {
 // Arranque
 // ---------------------------------------------------------------------------
 
-// Una sola instancia: si ya está abierto, no abrimos otro Clawd.
-if (!app.requestSingleInstanceLock()) app.quit();
+// Una sola instancia: si ya está abierto, no abrimos otro Clawd. La copia que sobra se va
+// sin hacer nada más (si no, alcanzaba a anotar un arranque y a tocar los archivos de la otra).
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) app.quit();
+
+// -----------------------------------------------------------------------------
+// Por qué se cerró: todo va a logs/errors.log, sin datos de lo que estás haciendo.
+// Mientras Clawd está abierto existe logs/abierto.json, con la última señal de vida
+// (se renueva cada minuto). Si al arrancar sigue ahí, la vez anterior no se cerró
+// bien: la cerró algo de afuera, se cortó la luz o falló sin poder avisar.
+// -----------------------------------------------------------------------------
+const RUN_MARK = path.join(LOGS, 'abierto.json');
+const runSince = new Date().toISOString();
+let quitReason = '';
+
+function markRunning() {
+  try {
+    fs.mkdirSync(LOGS, { recursive: true });
+    fs.writeFileSync(RUN_MARK, JSON.stringify({ since: runSince, seen: new Date().toISOString() }));
+  } catch {}
+}
+
+function checkLastRun() {
+  try {
+    const last = JSON.parse(fs.readFileSync(RUN_MARK, 'utf8'));
+    errorLog(`la vez anterior se cerró sin avisar: abierta desde ${last.since}, última señal ${last.seen}`);
+  } catch {} // no está (se cerró bien) o no se puede leer
+  markRunning();
+}
+
+function wireExitLog() {
+  process.on('uncaughtException', (e) => errorLog(`error sin atrapar: ${e.stack || e}`));
+  process.on('unhandledRejection', (e) => errorLog(`promesa rechazada sin atrapar: ${e?.stack || e}`));
+  // Si se cae lo que dibuja a Clawd, lo anotamos y lo volvemos a cargar: si no, desaparece sin cerrar la app.
+  app.on('render-process-gone', (_e, contents, d) => {
+    errorLog(`se cayó una ventana: ${d.reason} (código ${d.exitCode})`);
+    if (contents === win?.webContents && d.reason !== 'clean-exit' && !leaving) contents.reload();
+  });
+  app.on('child-process-gone', (_e, d) => errorLog(`se cayó un proceso de ${d.type}: ${d.reason} (código ${d.exitCode})`));
+  win.on('session-end', () => { quitReason ||= 'Windows cerró la sesión o se apagó'; });
+  powerMonitor.on('shutdown', () => { quitReason ||= 'Windows se está apagando'; });
+  powerMonitor.on('suspend', () => errorLog('la PC se suspendió'));
+  powerMonitor.on('resume', () => { errorLog('la PC volvió de la suspensión'); markRunning(); });
+}
 
 /** Las opciones del cerebro según la config actual (al arrancar y al guardar ajustes). */
 function brainOpts() {
@@ -798,6 +841,8 @@ function startTimers() {
 }
 
 app.whenReady().then(() => {
+  if (!gotLock) return; // es la copia que sobra: ya se está cerrando
+  checkLastRun();
   const fromEnvFile = loadEnv();
   guard.setLogFile(guardLogPath());
 
@@ -811,6 +856,7 @@ app.whenReady().then(() => {
   brain = new Brain(brainOpts());
 
   createWindow();
+  wireExitLog();
   createTray();
   wireSettings();
   // deja el registro de Windows igual que config.autoStart. Solo el instalado:
@@ -883,7 +929,7 @@ app.whenReady().then(() => {
 
   // Resumen del día: contar el tiempo en cada app y ver si ya toca mostrarlo.
   setInterval(trackDay, 10 * 1000);
-  setInterval(() => { stats.save(); streaks.save(); checkSummaryTime(); }, 60 * 1000);
+  setInterval(() => { stats.save(); streaks.save(); checkSummaryTime(); markRunning(); }, 60 * 1000);
 });
 
 /**
@@ -908,8 +954,15 @@ function wellnessTip() {
   say(tips[i], { sound: config.sound });
 }
 
-app.on('before-quit', () => { sensors?.stop(); stats.save(); streaks.save(); });
-app.on('window-all-closed', () => app.quit());
+app.on('before-quit', () => {
+  if (!gotLock) return;
+  sensors?.stop();
+  stats.save();
+  streaks.save();
+  errorLog(`cierre: ${quitReason || 'sin motivo conocido'}`);
+  try { fs.rmSync(RUN_MARK, { force: true }); } catch {}
+});
+app.on('window-all-closed', () => { quitReason ||= 'se cerraron las ventanas'; app.quit(); });
 
 // ---------------------------------------------------------------------------
 // Avisos de Claude Code
