@@ -93,6 +93,7 @@ function preview() {
     accessory: readField(document.querySelector('[data-path="appearance.accessory"]')),
     size: readField(document.querySelector('[data-path="appearance.size"]')),
     christmas: document.getElementById('christmas').checked,
+    christmasLook: document.getElementById('xmas-look').value,
   });
 }
 
@@ -221,6 +222,7 @@ async function init() {
 
 document.getElementById('preset').addEventListener('change', updatePreset);
 document.getElementById('christmas').addEventListener('change', preview);
+document.getElementById('xmas-look').addEventListener('change', preview);
 document.getElementById('provider').addEventListener('change', updateProvider);
 document.getElementById('save').addEventListener('click', save);
 document.getElementById('cancel').addEventListener('click', () => window.ajustes.close()); // main descarta la vista previa

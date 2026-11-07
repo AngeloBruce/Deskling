@@ -79,6 +79,14 @@ const REWARDS = [
 ].filter((r) => r.unlock);
 
 // Múltiplos de 16 sobre la grilla de 32x26: así cada píxel del dibujo mide un número entero.
+// Disfraces del modo navideño (los dibujos están en index.html y style.css)
+const XMAS_LOOKS = {
+  turnos: { label: 'Turnarse cada día' },
+  santa: { label: 'Santa' },
+  lana: { label: 'Gorro de lana' },
+};
+const xmasLookOf = (id) => (Object.hasOwn(XMAS_LOOKS, id) ? id : 'turnos');
+
 const SIZES = {
   chico: { label: 'Chico', w: 48, h: 39 },
   normal: { label: 'Normal', w: 64, h: 52 },
@@ -126,4 +134,4 @@ function buildPersonality(config) {
 // Quien lo tenga sin cambios pasa a "clasico"; cualquier otro texto se respeta como propio.
 const LEGACY_PERSONALITY = buildPersonality({});
 
-module.exports = { PERSONALITIES, SKINS, ACCESSORIES, SIZES, REWARDS, skinOf, sizeOf, accessoryOf, buildPersonality, LEGACY_PERSONALITY };
+module.exports = { PERSONALITIES, SKINS, ACCESSORIES, SIZES, REWARDS, XMAS_LOOKS, skinOf, sizeOf, accessoryOf, xmasLookOf, buildPersonality, LEGACY_PERSONALITY };

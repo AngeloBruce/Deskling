@@ -230,6 +230,7 @@ function sendAppearance(look = config.appearance) {
     height: size.h,
     petName: config.petName,
     christmas: look?.christmas === true,
+    christmasLook: presets.xmasLookOf(look?.christmasLook),
   });
 }
 

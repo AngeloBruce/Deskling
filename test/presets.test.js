@@ -78,10 +78,15 @@ test('todos los accesorios tienen su dibujo en las dos poses', () => {
   }
 });
 
-test('el modo navideño tiene su bufanda en las dos poses, su nieve y su interruptor', () => {
+test('el modo navideño tiene cada disfraz en las dos poses, su nieve y su interruptor', () => {
+  const { XMAS_LOOKS, xmasLookOf } = require('../src/presets');
   const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'index.html'), 'utf8');
   const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'style.css'), 'utf8');
-  assert.equal(html.split('class="xmas"').length - 1, 2);
+  for (const id of Object.keys(XMAS_LOOKS).filter((l) => l !== 'turnos')) {
+    assert.equal(html.split(`class="xmas xmas-${id}"`).length - 1, 2, id);
+    assert.match(css, new RegExp(`\\[data-xmas-look="${id}"\\] #clawd \\.xmas-${id}`), id);
+  }
+  for (const id of ['noexiste', 'constructor', undefined]) assert.equal(xmasLookOf(id), 'turnos');
   assert.match(html, /id="snow"/);
   assert.match(html, /data-action="christmas"/);
   assert.match(css, /#snow\s*\{[^}]*pointer-events:\s*none/);

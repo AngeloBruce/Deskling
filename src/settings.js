@@ -10,7 +10,7 @@
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
-const { PERSONALITIES, SKINS, ACCESSORIES, SIZES, LEGACY_PERSONALITY } = require('./presets');
+const { PERSONALITIES, SKINS, ACCESSORIES, SIZES, XMAS_LOOKS, LEGACY_PERSONALITY } = require('./presets');
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -135,6 +135,7 @@ const SCHEMA = {
   'appearance.accessory': oneOf(ACCESSORIES),
   'appearance.size': oneOf(SIZES),
   'appearance.christmas': { type: 'bool' },
+  'appearance.christmasLook': oneOf(XMAS_LOOKS),
   provider: { type: 'provider' },
   cooldownSeconds: int(5, 3600),
   musicCooldownSeconds: int(5, 3600),

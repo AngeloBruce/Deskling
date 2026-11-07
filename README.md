@@ -71,7 +71,7 @@ Pruebas: `npm test`.
 Clic derecho → **Configuración** abre la ventana de ajustes. Los cambios se aplican sin reiniciar, y la apariencia se ve en la mascota antes de guardar.
 
 - **Perfil:** tu nombre (opcional; se envía a tu proveedor de IA), el nombre de la mascota y la personalidad: Clásico, Sarcástico, Tierno, Motivador, Tranquilo o una tuya. Las reglas de formato y de datos personales se agregan siempre.
-- **Apariencia:** color, accesorio, tamaño y modo navideño (bufanda, gorrito si no tiene otro accesorio y, de vez en cuando, nieve solo alrededor de Clawd). También se prende y apaga con "Navidad" en el menú de Clawd o en la bandeja.
+- **Apariencia:** color, accesorio, tamaño y modo navideño (disfraz de Santa o gorro de lana con mitones, o uno cada día, y de vez en cuando nieve solo alrededor de Clawd; si lleva corona u otro sombrero, conserva el suyo). También se prende y apaga con "Navidad" en el menú de Clawd o en la bandeja.
 - **Comentarios, Foco y bienestar, Privacidad y General:** el resto de las opciones de abajo.
 
 La API key no se edita ahí: sigue en el `.env`. Las URLs de los proveedores y el puerto tampoco; para eso está **General → Abrir config.json**.

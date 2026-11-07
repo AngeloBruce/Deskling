@@ -50,7 +50,14 @@
       <div class="field"><span id="size-label">Tamaño</span>
         <div class="chips" data-path="appearance.size" data-type="choice" role="radiogroup" aria-labelledby="size-label"></div>
       </div>
-      <label class="check"><input type="checkbox" data-path="appearance.christmas" id="christmas"> Modo navideño: bufanda, gorrito y nieve de vez en cuando</label>
+      <label class="check"><input type="checkbox" data-path="appearance.christmas" id="christmas"> Modo navideño: disfraz y nieve de vez en cuando</label>
+      <label class="field">Disfraz navideño
+        <select data-path="appearance.christmasLook" id="xmas-look">
+          <option value="turnos">Turnarse cada día</option>
+          <option value="santa">Santa: gorro caído y barba</option>
+          <option value="lana">Gorro de lana con pompón y mitones</option>
+        </select>
+      </label>
     </section>
 
     <section id="comentarios" role="tabpanel" hidden>

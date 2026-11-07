@@ -33,7 +33,8 @@
     "skin": "naranja",
     "accessory": "ninguno",
     "size": "normal",
-    "christmas": false
+    "christmas": false,
+    "christmasLook": "turnos"
   },
   "cooldownSeconds": 90,
   "musicCooldownSeconds": 30,

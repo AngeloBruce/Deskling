@@ -412,10 +412,12 @@ window.clawd.onSide((side) => { document.body.dataset.side = side; });
 // Skin, accesorio, tamaño y nombre. Los colores y medidas son variables de style.css.
 // El accesorio va en un atributo porque setMood reemplaza todas las clases de #clawd.
 let petName = 'Clawd';
-window.clawd.onAppearance(({ colors, accessory, width, height, petName: name, christmas }) => {
+window.clawd.onAppearance(({ colors, accessory, width, height, petName: name, christmas, christmasLook }) => {
   const on = christmas ? 'on' : 'off';
   if (document.body.dataset.christmas !== on) setChristmas(!!christmas); // vista previa repetida: no reinicia la nieve
   document.body.dataset.christmas = on;
+  xmasLook = christmasLook;
+  applyXmasLook();
   const vars = {
     '--clawd': colors.main,
     '--clawd-dark': colors.dark,
@@ -488,6 +490,14 @@ setTimeout(maybeLaptop, 30000);
 // nieva un ratito, solo en la franja de Clawd (#snow en style.css).
 // -----------------------------------------------------------------------------
 const snowBox = document.getElementById('snow');
+
+// Disfraz: 'santa', 'lana' o 'turnos' (un día cada uno, según la fecha local)
+let xmasLook = 'turnos';
+function applyXmasLook() {
+  const day = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+  document.body.dataset.xmasLook = xmasLook === 'turnos' ? (day % 2 ? 'lana' : 'santa') : xmasLook;
+}
+setInterval(applyXmasLook, 10 * 60 * 1000); // así cambia solo pasada la medianoche
 const SNOW_MS = 20000;
 let snowTimer = null;
 let snowing = null;

@@ -128,11 +128,18 @@ body[data-side="left"] #bubble::after  { right: auto; left: calc(var(--cw) / 2 -
 #clawd[data-accessory="audifonos"] .acc-audifonos,
 #clawd[data-accessory="brote"]   .acc-brote { display: inline; }
 
-/* --- Modo navideño: bufanda siempre, y el gorrito (rojo y blanco) si no eligió otro accesorio --- */
+/* --- Modo navideño: data-xmas-look dice qué disfraz toca hoy (santa o lana, ver renderer.js) --- */
 #clawd .xmas { display: none; }
-body[data-christmas="on"] #clawd .xmas,
-body[data-christmas="on"] #clawd[data-accessory="ninguno"] .acc-gorrito { display: inline; }
-body[data-christmas="on"] #bubble:has(~ #clawd[data-accessory="ninguno"]) { margin-bottom: calc(6px + var(--cw) / 10); }
+body[data-christmas="on"][data-xmas-look="santa"] #clawd .xmas-santa,
+body[data-christmas="on"][data-xmas-look="lana"] #clawd .xmas-lana { display: inline; }
+/* el gorro navideño reemplaza al gorrito y convive con los lentes; con otro sombrero se queda el suyo */
+body[data-christmas="on"] #clawd[data-accessory="gorrito"] .acc-gorrito { display: none; }
+body[data-christmas="on"] #clawd:not([data-accessory="ninguno"], [data-accessory="gorrito"], [data-accessory="lentes"]) .xmas-hat { display: none; }
+body[data-christmas="on"] #bubble:has(~ #clawd:is([data-accessory="ninguno"], [data-accessory="gorrito"], [data-accessory="lentes"])) { margin-bottom: calc(6px + var(--cw) / 8); }
+/* mitones rojos: los bracitos de las dos poses (siguen sus animaciones) */
+body[data-christmas="on"][data-xmas-look="lana"] #clawd .body rect:is(:nth-child(2), :nth-child(3)),
+body[data-christmas="on"][data-xmas-look="lana"] #clawd .pose .arm-front { fill: #c94f4f; }
+body[data-christmas="on"][data-xmas-look="lana"] #clawd .pose .arm-back { fill: #9e3434; }
 
 /* Nieve: cae solo en una franja alrededor de Clawd, por delante y sin atrapar el mouse */
 #snow {
