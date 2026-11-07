@@ -134,6 +134,7 @@ const SCHEMA = {
   'appearance.skin': oneOf(SKINS),
   'appearance.accessory': oneOf(ACCESSORIES),
   'appearance.size': oneOf(SIZES),
+  'appearance.christmas': { type: 'bool' },
   provider: { type: 'provider' },
   cooldownSeconds: int(5, 3600),
   musicCooldownSeconds: int(5, 3600),

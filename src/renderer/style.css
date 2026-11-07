@@ -128,6 +128,38 @@ body[data-side="left"] #bubble::after  { right: auto; left: calc(var(--cw) / 2 -
 #clawd[data-accessory="audifonos"] .acc-audifonos,
 #clawd[data-accessory="brote"]   .acc-brote { display: inline; }
 
+/* --- Modo navideño: bufanda siempre, y el gorrito (rojo y blanco) si no eligió otro accesorio --- */
+#clawd .xmas { display: none; }
+body[data-christmas="on"] #clawd .xmas,
+body[data-christmas="on"] #clawd[data-accessory="ninguno"] .acc-gorrito { display: inline; }
+body[data-christmas="on"] #bubble:has(~ #clawd[data-accessory="ninguno"]) { margin-bottom: calc(6px + var(--cw) / 10); }
+
+/* Nieve: cae solo en una franja alrededor de Clawd, por delante y sin atrapar el mouse */
+#snow {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+  width: calc(var(--cw) + 16px);
+  height: calc(var(--ch) + 80px);
+  overflow: hidden;
+  pointer-events: none;
+}
+body[data-side="left"] #snow { right: auto; left: 0; }
+#snow .flake {
+  position: absolute;
+  top: -4px;
+  background: #fdfdfd;
+  box-shadow: 0 0 1px rgba(0, 0, 0, .35); /* que se vea también sobre fondos blancos */
+  animation: flake-fall linear forwards;
+}
+@keyframes flake-fall {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { transform: translate(var(--drift), calc(var(--ch) * .6 + 40px)); }
+  90%  { opacity: 1; }
+  100% { transform: translate(0, calc(var(--ch) + 80px)); opacity: 0; }
+}
+
 /* --- Caras: solo se ve el grupo de ojos que dice data-face --- */
 #clawd .eyes { display: none; }
 #clawd[data-face="normal"] .face-normal,

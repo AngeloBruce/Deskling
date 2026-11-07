@@ -163,6 +163,7 @@ const ICONS = {
   bye:    ['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'],
   power:  ['...#...', '.#.#.#.', '#..#..#', '#..#..#', '#.....#', '.#...#.', '..###..'], // arrancar con Windows
   chart:  ['......#', '......#', '...#..#', '...#..#', '#..#..#', '#..#..#', '#######'], // resumen del día
+  snow:   ['#..#..#', '.#.#.#.', '..###..', '#######', '..###..', '.#.#.#.', '#..#..#'], // modo navideño
   // modo foco: tomatito (pomodoro) y tacita (descanso)
   tomato: ['..#.#..', '...#...', '.#####.', '#######', '#######', '#######', '.#####.'],
   stop:   ['.......', '.#####.', '.#####.', '.#####.', '.#####.', '.#####.', '.......'],
@@ -210,7 +211,8 @@ function setPlaying(playing) {
 }
 
 /** Main nos pide abrir el menú y nos dice el estado actual. */
-window.clawd.onMenuOpen(({ paused, screenCapture, autoStart, focusing, music }) => {
+window.clawd.onMenuOpen(({ paused, screenCapture, autoStart, christmas, focusing, music }) => {
+  menu.querySelector('[data-action="christmas"]').setAttribute('aria-checked', String(!!christmas));
   menu.querySelector('[data-action="quit"] span').textContent = `Chau, ${petName}`;
   const row = menu.querySelector('.music-row');
   row.classList.toggle('hidden', !music);
@@ -410,7 +412,10 @@ window.clawd.onSide((side) => { document.body.dataset.side = side; });
 // Skin, accesorio, tamaño y nombre. Los colores y medidas son variables de style.css.
 // El accesorio va en un atributo porque setMood reemplaza todas las clases de #clawd.
 let petName = 'Clawd';
-window.clawd.onAppearance(({ colors, accessory, width, height, petName: name }) => {
+window.clawd.onAppearance(({ colors, accessory, width, height, petName: name, christmas }) => {
+  const on = christmas ? 'on' : 'off';
+  if (document.body.dataset.christmas !== on) setChristmas(!!christmas); // vista previa repetida: no reinicia la nieve
+  document.body.dataset.christmas = on;
   const vars = {
     '--clawd': colors.main,
     '--clawd-dark': colors.dark,
@@ -477,6 +482,55 @@ function maybeLaptop() {
   setTimeout(maybeLaptop, 60000 + Math.random() * 120000);
 }
 setTimeout(maybeLaptop, 30000);
+
+// -----------------------------------------------------------------------------
+// Nieve (modo navideño): al activarlo nieva enseguida, y después cada 3–6 min
+// nieva un ratito, solo en la franja de Clawd (#snow en style.css).
+// -----------------------------------------------------------------------------
+const snowBox = document.getElementById('snow');
+const SNOW_MS = 20000;
+let snowTimer = null;
+let snowing = null;
+
+function setChristmas(on) {
+  clearTimeout(snowTimer);
+  stopSnow();
+  if (on) snowTimer = setTimeout(snowCycle, 1500);
+}
+
+function snowCycle() {
+  snowfall(SNOW_MS);
+  snowTimer = setTimeout(snowCycle, 180000 + Math.random() * 180000);
+}
+
+function snowfall(ms) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; // si Windows pide menos animaciones
+  clearInterval(snowing);
+  const end = Date.now() + ms;
+  snowing = setInterval(() => {
+    if (Date.now() > end) { clearInterval(snowing); snowing = null; return; }
+    spawnFlake();
+  }, 220);
+}
+
+/** Un copo cuadradito (pixel) que cae balanceándose. */
+function spawnFlake() {
+  const f = document.createElement('i');
+  f.className = 'flake';
+  const size = Math.random() < 0.3 ? 3 : 2;
+  f.style.width = f.style.height = `${size}px`;
+  f.style.left = `${Math.random() * 100}%`;
+  f.style.animationDuration = `${3 + Math.random() * 2.5}s`;
+  f.style.setProperty('--drift', `${(Math.random() - 0.5) * 16}px`);
+  f.addEventListener('animationend', () => f.remove());
+  snowBox.append(f);
+}
+
+function stopSnow() {
+  clearInterval(snowing);
+  snowing = null;
+  snowBox.replaceChildren();
+}
 
 /** Una notita musical que sale de la cabeza de Clawd y sube flotando. */
 let noteSide = 1;

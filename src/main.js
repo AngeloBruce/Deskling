@@ -229,6 +229,7 @@ function sendAppearance(look = config.appearance) {
     width: size.w,
     height: size.h,
     petName: config.petName,
+    christmas: look?.christmas === true,
   });
 }
 
@@ -309,6 +310,7 @@ const MENU_ACTIONS = {
   'music-prev': () => musicCommand('prev'),
   capture: () => setCapture(!config.screenCapture),
   autostart: () => setAutoStart(!config.autoStart),
+  christmas: () => setChristmas(config.appearance?.christmas !== true),
   poke: () => speak('poke', { force: true }),
   guardlog: () => shell.openPath(guardLogPath()),
   config: () => openSettings(),
@@ -411,12 +413,21 @@ function setCapture(on) {
     : '🙈 Listo, ya no miro tu pantalla. Solo veo títulos.');
 }
 
+/** Modo navideño: bufanda, gorrito y de vez en cuando nieve alrededor de Clawd (renderer.js). */
+function setChristmas(on) {
+  config.appearance = { ...config.appearance, christmas: on };
+  const saved = saveConfig();
+  previewAppearance();
+  sayChange(saved, on ? '🎄 ¡Modo navideño! Abrigate, que a veces nieva.' : '📦 Guardé la Navidad hasta el año que viene.');
+}
+
 /** Menú nativo de Windows: solo para el ícono de la bandeja. */
 function buildMenu() {
   return Menu.buildFromTemplate([
     { label: state.paused ? `▶ Despertar a ${config.petName}` : '⏸ Pausar (dormir)', click: MENU_ACTIONS.pause },
     { label: 'Ver mi pantalla (captura)', type: 'checkbox', checked: config.screenCapture, click: MENU_ACTIONS.capture },
     { label: 'Arrancar con Windows', type: 'checkbox', checked: !!config.autoStart, click: MENU_ACTIONS.autostart },
+    { label: 'Modo navideño', type: 'checkbox', checked: config.appearance?.christmas === true, click: MENU_ACTIONS.christmas },
     { label: '💬 Opiná ahora', click: MENU_ACTIONS.poke },
     { label: pomodoro.active ? '🍅 Terminar foco' : `🍅 Modo foco (${config.focus.workMinutes} min)`, click: MENU_ACTIONS.focus },
     { label: '⏯ Música: play / pausa', click: MENU_ACTIONS['music-toggle'] },
@@ -891,6 +902,7 @@ app.whenReady().then(() => {
       paused: state.paused,
       screenCapture: config.screenCapture,
       autoStart: !!config.autoStart,
+      christmas: config.appearance?.christmas === true,
       focusing: pomodoro.active,
       // la canción (ya filtrada por el guard) para la fila de controles de música
       music: m?.title ? { title: m.title, artist: m.artist, playing: !!m.playing } : null,

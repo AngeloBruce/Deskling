@@ -78,6 +78,18 @@ test('todos los accesorios tienen su dibujo en las dos poses', () => {
   }
 });
 
+test('el modo navideño tiene su bufanda en las dos poses, su nieve y su interruptor', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'style.css'), 'utf8');
+  assert.equal(html.split('class="xmas"').length - 1, 2);
+  assert.match(html, /id="snow"/);
+  assert.match(html, /data-action="christmas"/);
+  assert.match(css, /#snow\s*\{[^}]*pointer-events:\s*none/);
+  const s = require('../src/settings');
+  assert.deepEqual(s.sanitize({ appearance: { christmas: true } }), { appearance: { christmas: true } });
+  assert.deepEqual(s.sanitize({ appearance: { christmas: 'sí' } }), {});
+});
+
 test('todas las skins tienen sus colores', () => {
   for (const [id, skin] of Object.entries(SKINS)) {
     for (const k of ['main', 'dark', 'shade', 'arm', 'bright']) assert.match(skin[k], /^#[0-9a-f]{6}$/, `${id}.${k}`);

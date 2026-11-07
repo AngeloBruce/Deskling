@@ -92,6 +92,7 @@ function preview() {
     skin: readField(document.querySelector('[data-path="appearance.skin"]')),
     accessory: readField(document.querySelector('[data-path="appearance.accessory"]')),
     size: readField(document.querySelector('[data-path="appearance.size"]')),
+    christmas: document.getElementById('christmas').checked,
   });
 }
 
@@ -219,6 +220,7 @@ async function init() {
 }
 
 document.getElementById('preset').addEventListener('change', updatePreset);
+document.getElementById('christmas').addEventListener('change', preview);
 document.getElementById('provider').addEventListener('change', updateProvider);
 document.getElementById('save').addEventListener('click', save);
 document.getElementById('cancel').addEventListener('click', () => window.ajustes.close()); // main descarta la vista previa

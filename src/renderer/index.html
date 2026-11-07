@@ -98,6 +98,8 @@
       <g class="acc acc-mono"><rect x="5" y="2" width="3" height="3" fill="#d6336c" /><rect x="8" y="3" width="2" height="1" fill="#a61e4d" /><rect x="10" y="2" width="3" height="3" fill="#d6336c" /></g>
       <g class="acc acc-audifonos"><rect x="5" y="1" width="22" height="1" fill="#2f2a27" /><rect x="4" y="2" width="1" height="2" fill="#2f2a27" /><rect x="27" y="2" width="1" height="2" fill="#2f2a27" /><rect x="3" y="4" width="2" height="4" fill="#4a6fa5" /><rect x="27" y="4" width="2" height="4" fill="#4a6fa5" /></g>
       <g class="acc acc-brote"><rect x="15" y="0" width="2" height="4" fill="#3f9d4a" /><rect x="12" y="-1" width="3" height="2" fill="#6cc070" /><rect x="17" y="-2" width="3" height="2" fill="#6cc070" /></g>
+      <!-- Modo navideño: bufanda a rayas (y el gorrito, si no tiene otro accesorio; ver style.css) -->
+      <g class="xmas"><rect x="4" y="15" width="24" height="2" fill="#c94f4f" /><rect x="8" y="15" width="2" height="2" fill="#f4ece4" /><rect x="14" y="15" width="2" height="2" fill="#f4ece4" /><rect x="20" y="15" width="2" height="2" fill="#f4ece4" /><rect x="22" y="17" width="3" height="3" fill="#c94f4f" /><rect x="22" y="20" width="3" height="1" fill="#f4ece4" /></g>
       <!-- Clawd usando la laptop: otro dibujo entero, de costado y agachado, con patitas
            cortas y los dos bracitos hacia adelante. Solo se ve con la clase .working. -->
       <g class="pose">
@@ -119,12 +121,16 @@
         <g class="acc acc-mono" transform="translate(3 0)"><rect x="5" y="2" width="3" height="3" fill="#d6336c" /><rect x="8" y="3" width="2" height="1" fill="#a61e4d" /><rect x="10" y="2" width="3" height="3" fill="#d6336c" /></g>
         <g class="acc acc-audifonos" transform="translate(3 0)"><rect x="5" y="1" width="22" height="1" fill="#2f2a27" /><rect x="4" y="2" width="1" height="2" fill="#2f2a27" /><rect x="27" y="2" width="1" height="2" fill="#2f2a27" /><rect x="3" y="4" width="2" height="4" fill="#4a6fa5" /><rect x="27" y="4" width="2" height="4" fill="#4a6fa5" /></g>
         <g class="acc acc-brote" transform="translate(3 0)"><rect x="15" y="0" width="2" height="4" fill="#3f9d4a" /><rect x="12" y="-1" width="3" height="2" fill="#6cc070" /><rect x="17" y="-2" width="3" height="2" fill="#6cc070" /></g>
+        <g class="xmas"><rect x="7" y="11" width="24" height="2" fill="#c94f4f" /><rect x="11" y="11" width="2" height="2" fill="#f4ece4" /><rect x="17" y="11" width="2" height="2" fill="#f4ece4" /><rect x="23" y="11" width="2" height="2" fill="#f4ece4" /><rect x="25" y="13" width="3" height="3" fill="#c94f4f" /><rect x="25" y="16" width="3" height="1" fill="#f4ece4" /></g>
       </g>
     </svg>
     <!-- "Zzz" cuando duerme (pausado) y "..." cuando piensa -->
     <span class="zzz">z<sup>z</sup></span>
     <span class="dots">···</span>
   </div>
+
+  <!-- Nieve del modo navideño: cae solo alrededor de Clawd (los copos los crea renderer.js) -->
+  <div id="snow" aria-hidden="true"></div>
 
   <!-- Contador del modo foco: tomatito + tiempo que queda, al costado de Clawd -->
   <div id="focus-badge" class="hidden"><i></i><span>25:00</span><b class="bar"></b></div>
@@ -145,6 +151,7 @@
     <button data-action="pause" data-icon="moon" role="menuitem"><i></i><span>Dormir un rato</span></button>
     <button data-action="capture" data-icon="eye" role="menuitemcheckbox"><i></i><span>Ver pantalla</span><b class="switch"></b></button>
     <button data-action="autostart" data-icon="power" role="menuitemcheckbox"><i></i><span>Abrir al iniciar</span><b class="switch"></b></button>
+    <button data-action="christmas" data-icon="snow" role="menuitemcheckbox"><i></i><span>Navidad</span><b class="switch"></b></button>
     <button data-action="poke" data-icon="chat" role="menuitem"><i></i><span>Opiná ahora</span></button>
     <button data-action="focus" data-icon="tomato" role="menuitem"><i></i><span>Modo foco</span></button>
     <button data-action="summary" data-icon="chart" role="menuitem"><i></i><span>Terminé por hoy</span></button>
